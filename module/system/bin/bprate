@@ -1,0 +1,66 @@
+#!/system/bin/sh
+# bprate [state|status|<rate>|auto on|off|boot on|off|drc on|off|pause on|off|<seconds>|fast on|off|mode <name>|bits <16|24|32|float>|reset] [force]
+MODDIR=/data/adb/modules/usb_dac_bitperfect
+STATE=/data/adb/usb_dac_bitperfect
+. "$MODDIR/common.sh"
+[ "$(id -u)" = 0 ] || { echo "Run as root: su -c 'bprate 96000'"; exit 1; }
+onoff() { [ -f "$STATE/$1" ] && echo ON || echo OFF; }
+case "$1" in
+  state)   # machine-readable, used by the WebUI
+    echo "rate=$(cat $STATE/rate 2>/dev/null)"; echo "bits=$(sr_bits)"; echo "mode=$(sr_flags | sed 's/^--//')"
+    for k in boot_apply auto drc pause fast; do [ -f "$STATE/$k" ] && echo "$k=1" || echo "$k=0"; done
+    echo "pause_delay=$(pause_delay)"; exit 0 ;;
+  ""|status)
+    echo "Mixer rate setting: $(cat $STATE/rate 2>/dev/null) Hz, $(sr_bits)-bit, mode $(sr_flags)"
+    echo "Apply at boot: $(onoff boot_apply) | Auto-follow: $(onoff auto) | DRC (compression, not bit-perfect): $(onoff drc)"
+    echo "Pause around rate switches: $(onoff pause) ($(pause_delay) s) | Fast detection: $(onoff fast)"
+    echo "Generated policy mounted: $(grep -c audio_policy /proc/mounts) mount(s) mention audio_policy"
+    exit 0 ;;
+  auto)
+    case "$2" in
+      on)  touch "$STATE/auto"; nohup "$MODDIR/system/bin/bpfollow" >/dev/null 2>&1 &
+           echo "Auto-follow ON (log: $STATE/follow.log)"; exit 0 ;;
+      off) rm -f "$STATE/auto"; echo "Auto-follow OFF"; exit 0 ;;
+      *)   echo "Usage: bprate auto on|off"; exit 1 ;;
+    esac ;;
+  boot)
+    case "$2" in on) touch "$STATE/boot_apply"; echo "Will apply at every boot" ;; off) rm -f "$STATE/boot_apply"; echo "Will not apply at boot" ;; *) echo "Usage: bprate boot on|off"; exit 1 ;; esac
+    exit 0 ;;
+  mode)
+    case "$2" in
+      offload|offload-hifi-playback|offload-direct|offload-safer|bypass-offload|bypass-offload-safer|legacy|safe|safest|safest-auto|usb-only)
+        echo "--$2" > "$STATE/sr_flags"; R=$(cat "$STATE/rate"); echo "Mode set to --$2" ;;
+      *) echo "Usage: bprate mode bypass-offload-safer|bypass-offload|usb-only|offload-hifi-playback|offload|offload-safer|offload-direct|legacy|safe|safest|safest-auto"; exit 1 ;;
+    esac ;;
+  drc)
+    case "$2" in on) touch "$STATE/drc"; R=$(cat "$STATE/rate"); echo "DRC ON (louder, compressed; not bit-perfect)" ;; off) rm -f "$STATE/drc"; R=$(cat "$STATE/rate"); echo "DRC OFF (default)" ;; *) echo "Usage: bprate drc on|off"; exit 1 ;; esac ;;
+  pause)
+    case "$2" in
+      on)  touch "$STATE/pause"; echo "Pause/resume around rate switches ON ($(pause_delay) s)"; exit 0 ;;
+      off) rm -f "$STATE/pause"; echo "Pause/resume around rate switches OFF"; exit 0 ;;
+      [0-9]|[0-9].[0-9]|[0-9].[0-9][0-9]) echo "$2" > "$STATE/pause_delay"; touch "$STATE/pause"; echo "Pause delay set to $2 s (pause/resume ON)"; exit 0 ;;
+      *)   echo "Usage: bprate pause on|off|<seconds, e.g. 1.5>"; exit 1 ;;
+    esac ;;
+  fast)
+    case "$2" in
+      on)  touch "$STATE/fast"; echo "Fast detection ON (pauses sooner after a track starts; polls more often)"; exit 0 ;;
+      off) rm -f "$STATE/fast"; echo "Fast detection OFF"; exit 0 ;;
+      *)   echo "Usage: bprate fast on|off"; exit 1 ;;
+    esac ;;
+  bits)
+    case "$2" in 16|24|32|float) echo "$2" > "$STATE/sr_bits"; R=$(cat "$STATE/rate"); echo "Bit depth set to $2" ;; *) echo "Usage: bprate bits 16|24|32|float"; exit 1 ;; esac ;;
+  reset)
+    sr_run --reset; rm -f "$STATE/boot_apply" "$STATE/auto"
+    echo "Policy overlay removed and audio server restarted. Apply at boot and auto-follow are OFF."; exit 0 ;;
+  44100|48000|88200|96000|176400|192000|352800|384000) R=$1 ;;
+  *) echo "Usage: bprate [status|44100|48000|88200|96000|176400|192000|auto on|off|boot on|off|drc on|off|pause on|off|<seconds>|fast on|off|mode <name>|bits <n>|reset] [force]"; exit 1 ;;
+esac
+case "$1" in mode|bits|drc) ;; *)
+  for c in /proc/asound/card*; do
+    [ -f "$c/usbid" ] || continue
+    if ! rate_supported "$R" "$c/stream0" && [ "$2" != "force" ]; then
+      echo "DAC ($(cat $c/id)) does not list $R Hz. Add 'force' to override."; exit 1
+    fi
+  done ;;
+esac
+if apply_rate "$R"; then echo "Applied $(sr_flags) $R Hz $(sr_bits)-bit. Audio server restarted; replug the DAC if it stays silent."; else echo "Apply failed (see message above)."; exit 1; fi

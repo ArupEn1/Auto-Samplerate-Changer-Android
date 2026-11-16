@@ -1,0 +1,20 @@
+#!/system/bin/sh
+# Why is (or isn't) the policy backend active?  Share the whole output.
+MODDIR=/data/adb/modules/usb_dac_bitperfect
+STATE=/data/adb/usb_dac_bitperfect
+. "$MODDIR/common.sh"
+echo "### module dir"; ls -la "$MODDIR" 2>&1 | head -30
+echo "### disable state"; ls "$MODDIR/disable" "$MODDIR/remove" 2>&1 | head
+echo "### installer log"; cat "$MODDIR/install.log" 2>&1 | head -40
+echo "### boot.log"; cat "$STATE/boot.log" 2>&1
+echo "### bundled backend"; ls "$MODDIR/usbsrc" 2>&1 | head; sed -n "2,3p" "$MODDIR/usbsrc/USB_SampleRate_Changer.sh"; cat "$MODDIR/usbsrc/.config" 2>&1 | head -20; ls -lZ /data/local/tmp/audio_conf_generated.xml 2>&1
+F=/vendor/etc/audio_policy_configuration.xml; [ -r "$MODDIR/usbsrc/.config" ] && . "$MODDIR/usbsrc/.config" && [ -n "$PolicyFile" ] && F=$PolicyFile
+echo "### policy files on device (loader order: /odm, /vendor, /system)"; find /odm/etc /vendor/etc /system/etc /product/etc -name '*audio_policy*.xml' 2>/dev/null
+echo "active policy file: $F"; ls -lZ "$F"; grep -n -E "hifi_playback|usb_device output|USB Device Out|USB Headset Out" "$F" | cut -c1-200; grep -n -A1 'sink="USB' "$F" | cut -c1-200
+echo "### usb policy file (the one --usb-only edits)"; ls -lZ /vendor/etc/usb_audio_policy_configuration.xml 2>&1; grep -n -E "usb_device output|samplingRates" /vendor/etc/usb_audio_policy_configuration.xml 2>&1 | cut -c1-200
+echo "### mounts touching vendor/etc"; grep -E 'vendor/etc|audio_policy' /proc/mounts | head
+echo "### other modules"; ls /data/adb/modules
+echo "### effects xml (volume listener lines)"
+for f in /vendor/etc/audio_effects.xml /vendor/etc/audio_effects.conf /system/etc/audio_effects.xml /odm/etc/audio_effects.xml; do [ -f "$f" ] && { echo "## $f"; grep -n -i -E 'volume_listener|volumelistener' "$f" | cut -c1-220; }; done
+echo "### current rate/state"; echo "rate=$(cat $STATE/rate 2>/dev/null) bits=$(sr_bits) mode=$(sr_flags) boot_apply=$([ -f $STATE/boot_apply ] && echo on || echo off) auto=$([ -f $STATE/auto ] && echo on || echo off)"
+echo "### status"; bpstatus

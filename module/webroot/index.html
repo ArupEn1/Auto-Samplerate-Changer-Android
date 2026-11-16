@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Auto Samplerate Changer</title>
+<script>try{var t=localStorage.getItem("asc-theme");var an=localStorage.getItem("asc-anim");if(an=="off"||(an===null&&window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches))document.documentElement.setAttribute("data-anim","off");if(t){document.documentElement.setAttribute("data-theme",t);if(t=="retro"||t=="crt")document.documentElement.setAttribute("data-retro","")}}catch(e){}</script>
+<style>
+:root{--bg:#0e1116;--card:#171b22;--card2:#1e232c;--fg:#e9ecf2;--mut:#8f98aa;--acc:#6ea8fe;--ok:#4cc38a;--bad:#ef6a6a;--warn:#e8b04b;--bd:#272d38;color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme]){--bg:#f3f5f9;--card:#fff;--card2:#eef1f6;--fg:#161a22;--mut:#5d6679;--acc:#2f6fdc;--ok:#1f9d66;--bad:#d64545;--warn:#b7791f;--bd:#dde2ea;color-scheme:light}}
+:root[data-theme=dark]{--bg:#0e1116;--card:#171b22;--card2:#1e232c;--fg:#e9ecf2;--mut:#8f98aa;--acc:#6ea8fe;--ok:#4cc38a;--bad:#ef6a6a;--warn:#e8b04b;--bd:#272d38;color-scheme:dark}
+:root[data-theme=light]{--bg:#f3f5f9;--card:#fff;--card2:#eef1f6;--fg:#161a22;--mut:#5d6679;--acc:#2f6fdc;--ok:#1f9d66;--bad:#d64545;--warn:#b7791f;--bd:#dde2ea;color-scheme:light}
+:root[data-theme=retro]{--bg:#eadfb8;--card:#f6ecc8;--card2:#e6d6a0;--fg:#3a2912;--mut:#7a6238;--acc:#a8431f;--ok:#46681c;--bad:#a8231f;--warn:#855400;--bd:#3a2912;color-scheme:light}
+@font-face{font-family:"ASC Pixel";src:url("fonts/asc-pixel.ttf") format("truetype");font-display:swap}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding:env(safe-area-inset-top,0) 0 calc(72px + env(safe-area-inset-bottom,0))}
+header{padding:16px 16px 8px}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--mut);font-size:12.5px}
+.pill{display:inline-block;margin-top:10px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--card2);color:var(--mut)}
+.pill.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+.flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.flags .pill{margin:0;padding:3px 10px;font-size:12px;background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+main{padding:0 12px}
+section{display:none}
+section.on{display:block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:10px 0}
+.card h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--bd)}
+.row:first-of-type{border-top:0}
+.row .t{min-width:0}
+.row .t b{display:block;font-weight:600}
+.row .t span{display:block;color:var(--mut);font-size:12.5px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+button,select{font:inherit;color:var(--fg)}
+.btn{border:1px solid var(--bd);background:var(--card2);padding:11px 8px;border-radius:11px;cursor:pointer;text-align:center}
+.btn:active{transform:scale(.98)}
+.btn.sel{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc);font-weight:600}
+.btn.danger{border-color:color-mix(in srgb,var(--bad) 50%,transparent);color:var(--bad)}
+.btn.full{width:100%;margin-top:8px}
+select{background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:9px 10px;max-width:58%}
+.sw{position:relative;width:48px;height:28px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.sw i{position:absolute;inset:0;border-radius:999px;background:var(--card2);border:1px solid var(--bd);transition:.15s}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--mut);transition:.15s}
+.sw input:checked+i{background:color-mix(in srgb,var(--acc) 30%,transparent);border-color:var(--acc)}
+.sw input:checked+i::after{left:23px;background:var(--acc)}
+input[type=range]{width:100%;accent-color:var(--acc)}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;max-height:55vh;overflow:auto}
+.out{background:var(--card2);border-radius:10px;padding:10px;min-height:60px}
+.hint{color:var(--mut);font-size:12.5px;margin:6px 2px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;background:none;border:0;padding:11px 2px 9px;color:var(--mut);font-size:12px;cursor:pointer}
+nav button.on{color:var(--acc);font-weight:600}
+nav button b{display:block;font-size:17px;line-height:1.2}
+#busy{position:fixed;top:0;left:0;right:0;height:3px;background:var(--acc);transform-origin:left;animation:b 1s infinite linear;display:none;z-index:9}
+@keyframes b{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:88%;text-align:center}
+#toast.on{opacity:1}
+.demo{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn);padding:6px 12px;font-size:12px;text-align:center}
+.topbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:6px}
+#helpBtn{border:1px solid var(--bd);background:var(--card2);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer}
+/* Retro: old yellowed paper, hard ink borders, pixel font */
+:root[data-retro] body,:root[data-retro] button,:root[data-retro] select{font-family:"ASC Pixel",ui-monospace,Menlo,Consolas,monospace;font-size:16px;line-height:1.35;letter-spacing:0;text-transform:none}
+:root[data-retro] body{background-color:var(--bg);background-image:radial-gradient(rgba(122,98,56,.28) 1px,transparent 1.2px),radial-gradient(rgba(122,98,56,.16) 1px,transparent 1.2px);background-size:7px 7px,13px 13px;background-position:0 0,3px 5px}
+:root[data-retro] h1{font-size:24px;text-shadow:2px 2px 0 rgba(58,41,18,.25)}
+:root[data-retro] .sub,:root[data-retro] .hint,:root[data-retro] .row .t span{font-size:16px}
+:root[data-retro] .card{border:2px solid var(--bd);border-radius:0;box-shadow:4px 4px 0 var(--bd)}
+:root[data-retro] .card h2{font-size:16px;letter-spacing:.08em;color:var(--acc);border-bottom:2px dashed var(--bd);padding-bottom:6px}
+:root[data-retro] .row{border-top:2px dotted var(--mut)}
+:root[data-retro] .btn,:root[data-retro] select,:root[data-retro] #helpBtn{border:2px solid var(--bd);border-radius:0;box-shadow:3px 3px 0 var(--bd);background:var(--card)}
+:root[data-retro] .grid .btn{font-size:11px;padding:11px 4px;overflow-wrap:anywhere}
+:root[data-retro] .btn:active,:root[data-retro] #helpBtn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--bd)}
+:root[data-retro] .btn.sel{background:var(--acc);color:var(--card);border-color:var(--bd)}
+:root[data-retro] .btn.danger{border-color:var(--bad);color:var(--bad);box-shadow:3px 3px 0 var(--bad)}
+:root[data-retro] .pill,:root[data-retro] .flags .pill{border-radius:0;border:2px solid currentColor;font-weight:400}
+:root[data-retro] .sw{width:52px;height:28px}
+:root[data-retro] .sw i{border-radius:0;border:2px solid var(--bd);background:var(--card2)}
+:root[data-retro] .sw i::after{border-radius:0;top:2px;left:2px;width:20px;height:20px;background:var(--bd)}
+:root[data-retro] .sw input:checked+i{background:var(--acc);border-color:var(--bd)}
+:root[data-retro] .sw input:checked+i::after{left:26px;background:var(--card)}
+:root[data-retro] .out{border:2px solid var(--bd);border-radius:0;background:var(--card2)}
+:root[data-retro] pre{font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
+:root[data-retro] nav{border-top:3px solid var(--bd);background:var(--card)}
+:root[data-retro] nav button{font-size:12px;padding-left:0;padding-right:0}
+:root[data-retro] nav button.on{color:var(--card);background:var(--acc);font-weight:400}
+:root[data-retro] #toast{border-radius:0;border:2px solid var(--bg);box-shadow:3px 3px 0 var(--acc)}
+:root[data-retro] .demo{border-radius:0}
+:root[data-theme=crt]{--bg:#0b0905;--card:#14100a;--card2:#1e170c;--fg:#ffb74a;--mut:#b27c2c;--acc:#ffd36b;--ok:#8dff8a;--bad:#ff7a55;--warn:#ffd36b;--bd:#7a5318;color-scheme:dark}
+:root[data-theme=crt] body{background-image:repeating-linear-gradient(to bottom,rgba(255,183,74,.05) 0 1px,transparent 1px 3px),radial-gradient(rgba(255,183,74,.10) 1px,transparent 1.2px);background-size:auto,9px 9px}
+:root[data-theme=crt] h1,:root[data-theme=crt] .card h2,:root[data-theme=crt] .pill{text-shadow:0 0 7px rgba(255,183,74,.55)}
+:root[data-theme=crt] h1{text-shadow:0 0 7px rgba(255,183,74,.55),2px 2px 0 rgba(0,0,0,.6)}
+:root[data-theme=crt] .btn.sel,:root[data-theme=crt] nav button.on{color:#140e04}
+:root[data-theme=crt] .btn.sel{text-shadow:none}
+:root[data-theme=crt] .card{box-shadow:4px 4px 0 #3a2909}
+:root[data-theme=crt] #toast{color:#140e04}
+/* Help cards */
+details.help summary{cursor:pointer;list-style:none;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.help summary::-webkit-details-marker{display:none}
+details.help summary::after{content:"+";font-size:18px;line-height:1;color:var(--acc)}
+details.help[open] summary::after{content:"\2212"}
+.help .body{margin-top:10px}
+.help ol{margin:0;padding-left:22px}
+.help li{margin:9px 0}
+.help li b{color:var(--fg)}
+.help p{margin:8px 0 0;color:var(--mut);font-size:13px}
+.help dl{margin:0}
+.help dt{font-weight:600;margin-top:10px}
+.help dd{margin:2px 0 0;color:var(--mut);font-size:13px}
+:root[data-retro] details.help summary{font-size:16px;color:var(--acc)}
+:root[data-retro] details.help p,:root[data-retro] .help dd{font-size:16px}
+.nudge{border-color:var(--warn)}
+.nudge h2{color:var(--warn)}
+.nudge p{margin:0 0 4px}
+.help h2+ol,.help h2+dl,.help h2+ul{margin-top:2px}
+.help ul{margin:0;padding-left:22px}
+/* Help sheet (opens over the page) */
+[hidden]{display:none!important}
+#helpSheet{position:fixed;inset:0;z-index:20;overflow-y:auto;overscroll-behavior:contain;background:inherit;padding:0 12px calc(24px + env(safe-area-inset-bottom,0))}
+#helpSheet .sheethead{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(12px + env(safe-area-inset-top,0)) 4px 10px;background:var(--bg);border-bottom:1px solid var(--bd)}
+#helpSheet .sheethead h1{margin:0}
+#closeHelp{border:1px solid var(--bd);background:var(--card2);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px}
+:root[data-retro] #closeHelp{border:2px solid var(--bd);border-radius:0;box-shadow:3px 3px 0 var(--bd);background:var(--card)}
+:root[data-retro] #helpSheet .sheethead{border-bottom:3px solid var(--bd)}
+#toast{z-index:30}
+@keyframes sheetin{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+#helpSheet.open{animation:sheetin .45s cubic-bezier(.25,.7,.25,1) both}
+/* Animations (all themes). Off when data-anim=off */
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes blink{50%{opacity:0}}
+@keyframes sweep{from{transform:translateX(-30%);opacity:0}to{transform:none;opacity:1}}
+.btn,#helpBtn{transition:transform .2s ease}
+:root.swap *,:root.swap *::before,:root.swap *::after{transition:background-color .6s ease,color .6s ease,border-color .6s ease,box-shadow .6s ease!important}
+section.on .card{animation:rise .65s cubic-bezier(.25,.7,.25,1) both;will-change:transform,opacity}
+section.on .card:nth-child(2){animation-delay:.09s}
+section.on .card:nth-child(3){animation-delay:.18s}
+section.on .card:nth-child(4){animation-delay:.27s}
+section.on .card:nth-child(n+5){animation-delay:.36s}
+h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
+@media (hover:hover){.btn:hover{transform:translateY(-1px)}nav button:hover{color:var(--fg)}}
+:root[data-theme=crt] #ver::after{content:"\2588";margin-left:6px;animation:blink 1.4s steps(1) infinite}
+:root[data-anim=off] *,:root[data-anim=off] *::after{animation:none!important;transition:none!important}
+</style>
+</head>
+<body>
+<div id="busy"></div>
+<div id="demo" class="demo" hidden>Preview mode: not running inside APatch or KernelSU, commands are simulated.</div>
+<header>
+  <div class="topbar"><button id="helpBtn" title="How to use">? Help</button></div>
+  <h1>Auto Samplerate Changer</h1>
+  <div class="sub" id="ver">for Android, with optional bit-perfect</div>
+  <div class="pill" id="pill">checking…</div>
+  <div class="flags" id="flags"></div>
+</header>
+
+<main>
+<!-- STATUS -->
+<section id="s-status" class="on">
+  <div class="card nudge" id="autoNudge" hidden><h2>One more step</h2>
+    <p><b>Auto-follow is off.</b> Until you turn it on, the module will not change the sample rate by itself, so it will look like nothing works.</p>
+    <button class="btn full sel" id="nudgeBtn">Turn on Auto-follow</button>
+  </div>
+  <div class="card"><h2>Live status</h2>
+    <div class="out"><pre id="statusOut">…</pre></div>
+    <div class="row"><div class="t"><b>Auto refresh</b><span>every 2 seconds while this tab is open</span></div>
+      <label class="sw"><input type="checkbox" id="autoref" checked><i></i></label></div>
+    <button class="btn full" id="refreshBtn">Refresh now</button>
+  </div>
+  <div class="card"><h2>Current settings</h2><div class="out"><pre id="stateOut">…</pre></div></div>
+  <p class="hint">Play a track on the USB DAC first. "rate-matched" means the mixer runs at the track's own rate.</p>
+</section>
+
+<!-- RATE -->
+<section id="s-rate">
+  <div class="card"><h2>Mixer rate (manual)</h2>
+    <div class="grid" id="rates"></div>
+    <div class="row"><div class="t"><b>Force unsupported rates</b><span>apply even if the DAC does not list the rate</span></div>
+      <label class="sw"><input type="checkbox" id="force"><i></i></label></div>
+  </div>
+  <p class="hint">Applying a rate restarts the audio server, so sound cuts for a second or two. With Auto-follow on you rarely need this.</p>
+</section>
+
+<!-- AUTO -->
+<section id="s-auto">
+  <div class="card"><h2>Automation</h2>
+    <div class="row"><div class="t"><b>Auto-follow track rate</b><span>switches the mixer to each track's rate</span></div><label class="sw"><input type="checkbox" data-key="auto"><i></i></label></div>
+    <div class="row"><div class="t"><b>Apply at boot</b><span>re-applies the saved mode and rate after every reboot</span></div><label class="sw"><input type="checkbox" data-key="boot_apply"><i></i></label></div>
+  </div>
+  <div class="card"><h2>Rate-switch behaviour</h2>
+    <div class="row"><div class="t"><b>Pause during switch</b><span>pauses the player, switches, then resumes</span></div><label class="sw"><input type="checkbox" data-key="pause"><i></i></label></div>
+    <div class="row" style="display:block"><div class="t"><b>Resume delay: <span id="delayVal" style="display:inline;color:var(--acc)">1.5</span> s</b><span>how long to wait after the switch before playing again</span></div>
+      <input type="range" id="delay" min="0.5" max="4" step="0.1" value="1.5"></div>
+    <div class="row"><div class="t"><b>Fast detection</b><span>pauses sooner after a track starts; uses a bit more CPU</span></div><label class="sw"><input type="checkbox" data-key="fast"><i></i></label></div>
+  </div>
+</section>
+
+<!-- AUDIO -->
+<section id="s-audio">
+  <div class="card"><h2>Output path</h2>
+    <div class="row"><div class="t"><b>Mode</b><span>how USB audio is routed</span></div>
+      <select id="mode">
+        <option value="bypass-offload-safer">bypass-offload-safer (recommended)</option>
+        <option value="bypass-offload">bypass-offload</option>
+        <option value="usb-only">usb-only (touches only the USB policy file)</option>
+        <option value="offload-hifi-playback">offload-hifi-playback</option>
+        <option value="offload">offload</option>
+        <option value="offload-safer">offload-safer</option>
+        <option value="offload-direct">offload-direct</option>
+        <option value="legacy">legacy</option>
+        <option value="safe">safe</option>
+        <option value="safest">safest</option>
+        <option value="safest-auto">safest-auto</option>
+      </select></div>
+    <div class="row"><div class="t"><b>Bit depth</b><span>32-bit is the default</span></div>
+      <select id="bits"><option>16</option><option>24</option><option>32</option><option value="float">float</option></select></div>
+  </div>
+  <div class="card"><h2>Sound</h2>
+    <div class="row"><div class="t"><b>DRC (compression)</b><span>louder and punchier, but not bit-perfect. Off is the default</span></div><label class="sw"><input type="checkbox" data-key="drc"><i></i></label></div>
+  </div>
+  <details class="card help"><summary>Which mode should I pick?</summary>
+    <div class="body"><dl>
+      <dt>bypass-offload-safer</dt><dd>The default. Try this first.</dd>
+      <dt>safest</dt><dd>Use this if the phone speaker or other outputs go silent with the default. It fixed that on an LG V30.</dd>
+      <dt>usb-only</dt><dd>Changes only the USB audio file and leaves the rest of the audio setup alone. Gentlest, but it did not stop resampling on the LG V30.</dd>
+      <dt>Others</dt><dd>offload, legacy, safe and the rest are for experimenting. Press Reset in Tools to undo any mode.</dd>
+    </dl>
+    <p>After changing a mode, play a song again and check the badge on the Status tab.</p></div>
+  </details>
+  <p class="hint">Changing mode, bit depth or DRC reapplies the current rate and restarts the audio server.</p>
+</section>
+
+<!-- TOOLS -->
+<section id="s-tools">
+  <div class="card"><h2>Diagnostics</h2>
+    <div class="grid">
+      <button class="btn" data-run="verify">Verify</button>
+      <button class="btn" data-run="diag">Diagnostics</button>
+      <button class="btn" data-run="check">Check</button>
+      <button class="btn" data-run="followlog">Follow log</button>
+      <button class="btn" data-run="bootlog">Boot log</button>
+      <button class="btn" data-run="installlog">Install log</button>
+    </div>
+    <p class="hint">Run Verify and Diagnostics while music plays through the DAC.</p>
+    <div class="out"><pre id="toolOut">Output appears here.</pre></div>
+    <button class="btn full" id="copyBtn">Copy output</button>
+  </div>
+  <div class="card"><h2>Share a report</h2>
+    <button class="btn full sel" data-run="report">Save full report to Downloads</button>
+    <p class="hint">Run while music plays. Saves <b>bitperfect-report.txt</b> to your Downloads folder: status, settings, logs and verify output, with process IDs removed. Review it before posting.</p>
+  </div>
+  <div class="card"><h2>Appearance</h2>
+    <div class="grid" id="themeGrid" style="grid-template-columns:repeat(2,1fr)">
+      <button class="btn" data-theme="auto">Auto (follow system)</button>
+      <button class="btn" data-theme="light">Day</button>
+      <button class="btn" data-theme="dark">Night</button>
+      <button class="btn" data-theme="retro">Retro paper</button>
+      <button class="btn" data-theme="crt">Retro night</button>
+    </div>
+    <div class="row"><div class="t"><b>Animations</b><span>smooth transitions and effects</span></div><label class="sw"><input type="checkbox" id="animSw"><i></i></label></div>
+    <p class="hint">Saved on this device only.</p>
+  </div>
+  <div class="card"><h2>Maintenance</h2>
+    <button class="btn full" data-run="clearlog">Clear follow log</button>
+    <button class="btn full danger" id="resetBtn">Reset: remove policy overlay and turn off automation</button>
+  </div>
+</section>
+</main>
+
+<div id="helpSheet" hidden role="dialog" aria-label="Help">
+  <div class="sheethead"><h1>Help</h1><button id="closeHelp">Close</button></div>
+  <div class="card help"><h2>Quick start</h2>
+    <ol>
+      <li><b>Install the module and reboot.</b> You have done this if you can read this page.</li>
+      <li><b>Plug in your USB DAC</b> and play a song in your music app.</li>
+      <li><b>Turn on Auto-follow.</b> Open the <b>Auto</b> tab and switch on <b>Auto-follow track rate</b>. It is <b>off after installing</b>, and nothing changes the sample rate until you turn it on. Leave <b>Apply at boot</b> on too.</li>
+      <li><b>Check the badge</b> at the top of the Status tab. <b>Rate-matched</b> (green) means the music is playing at its own sample rate.</li>
+    </ol>
+    <button class="btn full sel" id="helpAuto">Go to the Auto tab</button>
+    <p>For bit-perfect playback, use media volume at maximum and turn off EQ and effects in your music app.</p>
+  </div>
+  <div class="card help"><h2>If something is wrong</h2>
+    <ul>
+      <li><b>Nothing seems to happen:</b> check that Auto-follow is on (Auto tab).</li>
+      <li><b>No sound, or the speaker is silent:</b> Tools &rarr; <b>Reset</b>, then Audio &rarr; Mode &rarr; <b>safest</b>.</li>
+      <li><b>Badge says Resampled:</b> make sure a song is playing through the DAC and Auto-follow is on, then try another mode on the Audio tab.</li>
+      <li><b>Still stuck:</b> Tools &rarr; <b>Save full report to Downloads</b> while music plays, review the file, and attach it to a GitHub issue.</li>
+    </ul>
+  </div>
+  <div class="card help"><h2>What each tab does</h2>
+    <dl>
+      <dt>Status</dt><dd>Live view of the audio path, the badge and your current settings.</dd>
+      <dt>Rate</dt><dd>Pick a sample rate by hand. You rarely need this with Auto-follow on.</dd>
+      <dt>Auto</dt><dd>Auto-follow, apply at boot, and pause and resume while switching.</dd>
+      <dt>Audio</dt><dd>Output mode, bit depth and DRC, with a short guide to picking a mode.</dd>
+      <dt>Tools</dt><dd>Checks, logs, the one-tap report, Reset and the look of this page (themes and animations).</dd>
+    </dl>
+    <p>Prefer a terminal? The commands are listed in <b>docs/TERMINAL.md</b> on the project's GitHub page.</p>
+  </div>
+</div>
+
+<nav id="nav">
+  <button data-tab="status" class="on"><b>◉</b>Status</button>
+  <button data-tab="rate"><b>♫</b>Rate</button>
+  <button data-tab="auto"><b>⟳</b>Auto</button>
+  <button data-tab="audio"><b>≋</b>Audio</button>
+  <button data-tab="tools"><b>⚙</b>Tools</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const MOD = "/data/adb/modules/usb_dac_bitperfect";
+const BIN = MOD + "/system/bin/";
+const STATE = "/data/adb/usb_dac_bitperfect";
+const RATES = [[44100,"44.1"],[48000,"48"],[88200,"88.2"],[96000,"96"],[176400,"176.4"],[192000,"192"]];
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+/* ---- command bridge: KernelSU/APatch WebUI API, or a simulated one for previews ---- */
+let demo = !(window.ksu && typeof window.ksu.exec === "function");
+const mock = { rate: 96000, bits: "32", mode: "bypass-offload-safer", boot_apply: 1, auto: 0, drc: 0, pause: 1, fast: 0, pause_delay: "1.5" };
+function mockExec(cmd) {
+  if (/module\.prop/.test(cmd)) return "version=v0.6.13 (preview)";
+  const m = cmd.match(/bprate (\S+)(?: (\S+))?/);
+  if (/bprate state/.test(cmd)) return Object.entries(mock).map(([k, v]) => k + "=" + v).join("\n");
+  if (/bpreport/.test(cmd)) return "Saved /data/local/tmp/bitperfect-report.txt and /sdcard/Download/bitperfect-report.txt";
+  if (/bpstatus/.test(cmd)) return mock.rate === 96000 ? "USB DAC: Source 96 kHz | Mixer 96 kHz | rate-matched | gain 0 dB" : "USB DAC: Source 96 kHz | Mixer " + mock.rate / 1000 + " kHz | RESAMPLED 96->" + mock.rate / 1000 + ", VOLUME -6.0 dB: set media volume to MAX\nENABLED EFFECTS (alter audio): " + (window.__mockEffect || "Equalizer");
+  if (m) {
+    const [, a, b] = m;
+    if (/^\d+$/.test(a)) { mock.rate = +a; return "Applied " + a + " Hz"; }
+    if (["auto", "boot", "drc", "pause", "fast"].includes(a)) {
+      const key = a === "boot" ? "boot_apply" : a;
+      if (a === "pause" && /^[\d.]+$/.test(b)) { mock.pause_delay = b; mock.pause = 1; } else mock[key] = b === "on" ? 1 : 0;
+      return a + " " + b;
+    }
+    if (a === "mode") { mock.mode = b; return "Mode set to --" + b; }
+    if (a === "bits") { mock.bits = b; return "Bit depth set to " + b; }
+    if (a === "reset") { mock.auto = 0; mock.boot_apply = 0; return "Policy overlay removed."; }
+  }
+  return "(simulated) " + cmd;
+}
+function exec(cmd) {
+  if (demo) return new Promise(r => setTimeout(() => r({ errno: 0, stdout: mockExec(cmd), stderr: "" }), 250));
+  return new Promise((resolve, reject) => {
+    const cb = "exec_cb_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    window[cb] = (errno, stdout, stderr) => { delete window[cb]; resolve({ errno, stdout, stderr }); };
+    try { window.ksu.exec(cmd, "{}", cb); } catch (e) { delete window[cb]; reject(e); }
+  });
+}
+let busyCount = 0;
+async function run(cmd, quiet) {
+  if (!quiet) { busyCount++; $("#busy").style.display = "block"; }
+  try {
+    const r = await exec(cmd);
+    return ((r.stdout || "") + (r.stderr || "")).trim();
+  } catch (e) { return "Error: " + e; }
+  finally { if (!quiet && --busyCount <= 0) { busyCount = 0; $("#busy").style.display = "none"; } }
+}
+const bprate = (args, quiet) => run("sh " + BIN + "bprate " + args + " 2>&1", quiet);
+const tool = name => run("sh " + BIN + name + " 2>&1");
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
+
+/* ---- state ---- */
+let S = {};
+function parseState(txt) { const o = {}; txt.split("\n").forEach(l => { const i = l.indexOf("="); if (i > 0) o[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); return o; }
+function paint() {
+  $$("[data-key]").forEach(el => { el.checked = S[el.dataset.key] === "1"; });
+  $("#mode").value = S.mode || "bypass-offload-safer";
+  $("#bits").value = S.bits || "32";
+  const d = parseFloat(S.pause_delay || "1.5"); $("#delay").value = d; $("#delayVal").textContent = d.toFixed(1);
+  $$("#rates .btn").forEach(b => b.classList.toggle("sel", b.dataset.rate === S.rate));
+  $("#autoNudge").hidden = S.auto === "1";
+  $("#stateOut").textContent = "Rate: " + S.rate + " Hz (" + S.bits + "-bit)\nMode: --" + S.mode +
+    "\nAuto-follow: " + (S.auto === "1" ? "on" : "off") + " | Boot: " + (S.boot_apply === "1" ? "on" : "off") +
+    "\nPause: " + (S.pause === "1" ? "on, " + S.pause_delay + " s" : "off") + " | Fast: " + (S.fast === "1" ? "on" : "off") +
+    "\nDRC: " + (S.drc === "1" ? "on" : "off");
+}
+async function loadState() {
+  const txt = await bprate("state", true);
+  if (txt.indexOf("rate=") < 0) { $("#stateOut").textContent = txt || "No answer. Is the module installed and enabled?"; return false; }
+  S = parseState(txt); paint(); return true;
+}
+async function loadStatus() {
+  const txt = await run("sh " + BIN + "bpstatus 2>&1", true);
+  $("#statusOut").textContent = txt || "(no output)";
+  const p = $("#pill"), low = txt.toLowerCase();
+  p.className = "pill";
+  if (low.includes("rate-matched")) { p.classList.add("ok"); p.textContent = "Rate-matched"; }
+  else if (low.includes("resampled")) { p.classList.add("bad"); p.textContent = "Resampled"; }
+  else if (low.includes("no usb")) { p.textContent = "No USB output"; }
+  else p.textContent = txt ? txt.split("\n")[0].slice(0, 40) : "No data";
+  // soft heads-up badges: only shown when something is altering the signal
+  const fl = $("#flags"); fl.textContent = "";
+  const flag = t => { const e = document.createElement("span"); e.className = "pill"; e.textContent = t; fl.appendChild(e); };
+  const fx = txt.match(/ENABLED EFFECTS[^:]*:\s*(.+)/i);
+  if (fx) {
+    // a lone vendor "Volume listener" is common on Qualcomm phones (e.g. LG) and only reports volume; keep the heads-up but soften it
+    const onlyListener = /^volume listener/i.test(fx[1].trim()) && fx[1].indexOf(",") < 0;
+    flag(onlyListener ? "Vendor volume listener (may differ on LG phones)" : "Sound effects on");
+  }
+  const vol = txt.match(/VOLUME\s+(-?[\d.]+)\s*dB/i);
+  if (vol) flag("Volume " + vol[1] + " dB");
+}
+
+/* ---- wiring ---- */
+const rateBox = $("#rates");
+RATES.forEach(([hz, label]) => {
+  const b = document.createElement("button"); b.className = "btn"; b.dataset.rate = String(hz); b.innerHTML = label + "<br><small>kHz</small>";
+  b.onclick = async () => { const force = $("#force").checked ? " force" : ""; toast("Applying " + label + " kHz…"); const out = await bprate(hz + force); toast(out.split("\n")[0] || "Done"); await loadState(); loadStatus(); };
+  rateBox.appendChild(b);
+});
+$$("[data-key]").forEach(el => el.addEventListener("change", async () => {
+  const key = el.dataset.key, cmd = key === "boot_apply" ? "boot" : key, val = el.checked ? "on" : "off";
+  const out = await bprate(cmd + " " + val); toast(out.split("\n")[0] || cmd + " " + val); loadState();
+}));
+$("#nudgeBtn").onclick = () => { const el = $("[data-key=auto]"); el.checked = true; el.dispatchEvent(new Event("change")); };
+function openHelp() { const h = $("#helpSheet"); h.hidden = false; h.classList.remove("open"); void h.offsetWidth; h.classList.add("open"); h.scrollTop = 0; document.body.style.overflow = "hidden"; }
+function closeHelp() { $("#helpSheet").hidden = true; document.body.style.overflow = ""; }
+$("#helpBtn").onclick = openHelp;
+$("#closeHelp").onclick = closeHelp;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#helpSheet").hidden) closeHelp(); });
+$("#helpAuto").onclick = () => { closeHelp(); showTab("auto"); };
+let delayTimer;
+$("#delay").addEventListener("input", e => { $("#delayVal").textContent = parseFloat(e.target.value).toFixed(1); });
+$("#delay").addEventListener("change", e => {
+  clearTimeout(delayTimer);
+  delayTimer = setTimeout(async () => { const out = await bprate("pause " + parseFloat(e.target.value).toFixed(1)); toast(out.split("\n")[0]); loadState(); }, 150);
+});
+$("#mode").addEventListener("change", async e => { toast("Changing mode…"); const out = await bprate("mode " + e.target.value); toast(out.split("\n")[0]); loadState(); });
+$("#bits").addEventListener("change", async e => { toast("Changing bit depth…"); const out = await bprate("bits " + e.target.value); toast(out.split("\n")[0]); loadState(); });
+
+const TOOLS = {
+  verify: () => tool("bpverify"),
+  diag: () => tool("bpdiag"),
+  check: () => tool("bpcheck"),
+  followlog: () => run("tail -n 60 " + STATE + "/follow.log 2>&1"),
+  bootlog: () => run("cat " + STATE + "/boot.log 2>&1"),
+  installlog: () => run("cat " + MOD + "/install.log 2>&1"),
+  report: () => run("sh " + BIN + "bpreport 2>&1"),
+  clearlog: async () => { await run(": > " + STATE + "/follow.log"); return "Follow log cleared."; }
+};
+$$("[data-run]").forEach(b => b.onclick = async () => {
+  const name = b.dataset.run; $("#toolOut").textContent = "Running " + name + "…";
+  const out = await TOOLS[name](); $("#toolOut").textContent = out || "(empty)";
+  if (name === "clearlog") toast("Cleared");
+  if (name === "report" && /Saved/.test(out)) toast("Saved to Downloads");
+});
+$("#copyBtn").onclick = async () => {
+  const text = $("#toolOut").textContent;
+  try { await navigator.clipboard.writeText(text); toast("Copied"); }
+  catch (e) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast("Copied"); } catch (e2) { toast("Select the text and copy it by hand"); } ta.remove(); }
+};
+$("#resetBtn").onclick = async () => {
+  if (!confirm("Remove the policy overlay and turn off Apply at boot and Auto-follow?")) return;
+  const out = await bprate("reset"); toast(out.split("\n")[0] || "Reset"); loadState(); loadStatus();
+};
+
+/* tabs */
+function showTab(name) {
+  $$("section").forEach(s => s.classList.toggle("on", s.id === "s-" + name));
+  $$("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  window.scrollTo(0, 0);
+  if (name === "status") { loadStatus(); loadState(); }
+}
+$$("#nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+$("#refreshBtn").onclick = () => { loadStatus(); loadState(); };
+setInterval(() => { if ($("#s-status").classList.contains("on") && $("#autoref").checked && !document.hidden) loadStatus(); }, 2000);
+
+/* themes */
+const THEMES = ["auto","light","dark","retro","crt"], THEME_NAME = {auto:"Auto",light:"Day",dark:"Night",retro:"Retro",crt:"Retro night"};
+function getTheme() { try { const t = localStorage.getItem("asc-theme"); return THEMES.includes(t) ? t : "auto"; } catch (e) { return "auto"; } }
+function setTheme(t, fade) {
+  const de0 = document.documentElement;
+  if (fade && animOn()) { de0.classList.add("swap"); setTimeout(() => de0.classList.remove("swap"), 700); }
+  const de = document.documentElement;
+  if (t === "auto") de.removeAttribute("data-theme"); else de.setAttribute("data-theme", t);
+  if (t === "retro" || t === "crt") de.setAttribute("data-retro", ""); else de.removeAttribute("data-retro");
+  try { if (t === "auto") localStorage.removeItem("asc-theme"); else localStorage.setItem("asc-theme", t); } catch (e) {}
+  $$("#themeGrid .btn").forEach(b => b.classList.toggle("sel", b.dataset.theme === t));
+}
+$$("#themeGrid .btn").forEach(b => b.onclick = () => setTheme(b.dataset.theme, true));
+function animOn() { return document.documentElement.getAttribute("data-anim") !== "off"; }
+function setAnim(on) {
+  if (on) document.documentElement.removeAttribute("data-anim"); else document.documentElement.setAttribute("data-anim", "off");
+  try { localStorage.setItem("asc-anim", on ? "on" : "off"); } catch (e) {}
+  $("#animSw").checked = on;
+}
+$("#animSw").checked = animOn();
+$("#animSw").onchange = e => setAnim(e.target.checked);
+setTheme(getTheme());
+
+/* start */
+if (demo) $("#demo").hidden = false;
+(async () => {
+  const ok = await loadState();
+  if (ok) { const v = await run("grep '^version=' " + MOD + "/module.prop 2>/dev/null", true); if (v) $("#ver").textContent = "module " + v.replace("version=", ""); }
+  loadStatus();
+})();
+</script>
+</body>
+</html>

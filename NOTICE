@@ -1,0 +1,29 @@
+Auto Samplerate Changer for Android (with Optional Bitperfect)
+
+Copyright (C) 2026 ArupEn1, for the modifications and additions made to the base project
+(this project as a whole is licensed under the GNU AGPL-3.0, see LICENSE).
+
+Credits and licenses
+--------------------
+
+1. Base project
+   This project is derived from the "BitPerfect-DAC" module by varunpilankar
+   (https://github.com/varunpilankar/BitPerfect-DAC), licensed GPL-3.0.
+   It has been modified: the original policy patching was replaced, tools were
+   fixed and extended, and a daemon, a WebUI and tests were added.
+   The record of these changes is in docs/HISTORY.md. The original license
+   is kept in LICENSES/GPL-3.0.txt. GPL-3.0 section 13 allows combining GPL-3.0
+   and AGPL-3.0 code; the combined work is offered under the AGPL-3.0.
+
+2. Bundled backend
+   module/usbsrc contains "USB_SampleRate_Changer" by zyhk (yzyhk904)
+   (https://github.com/yzyhk904/USB_SampleRate_Changer), licensed AGPL-3.0,
+   included unmodified with its own LICENSE and README. It does the audio
+   policy rewrite. All credit for it belongs to its author.
+
+3. Font
+   module/webroot/fonts/asc-pixel.ttf is an original bitmap font created for
+   this project (generator: asc-pixel-generator.py). CC0 / public domain.
+
+This project is a hobby project provided as is, with no warranty and no
+guaranteed support. Use it at your own risk.
