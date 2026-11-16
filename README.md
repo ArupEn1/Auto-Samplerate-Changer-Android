@@ -49,7 +49,7 @@ The audio-policy rewrite is done by the bundled, **unmodified** [USB_SampleRate_
 | Device | ROM / Android | Root | Result |
 |---|---|---|---|
 | Moto Edge 30 Fusion | LineageOS 24 / Android 17 | APatch + Hybrid Mount | Works: rate-matched, auto-follow, pause/resume |
-| Samsung Galaxy Tab S9 | One UI 7 / Android 15 | KernelSU Next + Hybrid Mount | Works (reported) |
+| Samsung Galaxy Tab S9 | One UI 7 / Android 15 (R/W) | KernelSU Next + Hybrid Mount | Works (reported) |
 | LG V30 | LineageOS 22.2 / Android 15 | Magisk | USB DAC works in `safest` mode; jack not supported |
 
 Details and evidence: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md). Other devices, ROMs, DACs and apps are **untested**, and Spotify has not been tried.
