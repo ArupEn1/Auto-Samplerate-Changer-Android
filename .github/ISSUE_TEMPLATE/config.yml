@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: SampleRate Support Group (Discord)
+    url: https://discord.gg/8bKkanMb3x
+    about: Quick questions, DAC reports and help from other users. Bugs with a report file are welcome here or in Issues.

@@ -1,6 +1,6 @@
 # Install, update, uninstall, recovery
 
-> Experimental software that edits audio configuration through a root module. Know how to recover before you flash.
+> Beta software that edits audio configuration through a root module. Know how to recover before you flash.
 
 ## Requirements
 - Rooted device with Magisk. Developed on Android 16 / LineageOS 23.2 (Qualcomm). Other setups are untested.

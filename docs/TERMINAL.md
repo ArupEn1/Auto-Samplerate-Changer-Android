@@ -1,6 +1,6 @@
 # Terminal commands
 
-You do not need a terminal to use Auto Samplerate Changer: everything below is also available as buttons and switches in the module's **WebUI** (Status, Rate, Auto, Audio and Tools tabs). This page is for people who prefer a terminal (Termux: type `su` first) or who need the commands for scripting and bug reports. You need to use su -c (command).
+You do not need a terminal to use Auto Samplerate Changer: everything below is also available as buttons and switches in the module's **WebUI** (Status, Rate, Auto, Audio and Tools tabs). This page is for people who prefer a terminal (Termux: type `su` first) or who need the commands for scripting and bug reports. You need to run commands with su -c.
 
 ## Everyday commands
 

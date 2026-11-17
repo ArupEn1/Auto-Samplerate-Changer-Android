@@ -2,6 +2,11 @@
 
 Versions are module versions (`module/module.prop`). Nothing here is a validated release.
 
+## 0.6.14
+- README: new section "How it knows the track's sample rate" (AudioFlinger track table, polling and confirmation, switch limits, what has and has not been tested).
+- README: link to the SampleRate Support Group Discord server in "Reporting issues".
+- Wording: the project is now called beta instead of experimental (module description, installer banner, README badge, release title).
+
 ## 0.6.13
 - The EQ note lives in the README only; the WebUI Help page no longer states it. README now says EQ was confirmed working by the maintainer.
 

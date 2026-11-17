@@ -1,4 +1,4 @@
-# Auto Samplerate Changer for Android: module usage (v0.6.13, experimental)
+# Auto Samplerate Changer for Android: module usage (v0.6.14, beta)
 
 Flash `Auto-Samplerate-Changer-<version>.zip` in Magisk, APatch or KernelSU, **reboot**, then use a root shell (Termux: `su`).
 

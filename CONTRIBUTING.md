@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. This project is experimental and evidence-driven.
+Thanks for helping. This project is in beta and evidence-driven.
 
 ## Ground rules
 - **Evidence over claims.** A change that alters audio behaviour needs before/after output from `bpstatus`, `bpverify` and, where relevant, `bpdump` (sanitized).

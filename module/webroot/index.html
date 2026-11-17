@@ -322,7 +322,7 @@ const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 let demo = !(window.ksu && typeof window.ksu.exec === "function");
 const mock = { rate: 96000, bits: "32", mode: "bypass-offload-safer", boot_apply: 1, auto: 0, drc: 0, pause: 1, fast: 0, pause_delay: "1.5" };
 function mockExec(cmd) {
-  if (/module\.prop/.test(cmd)) return "version=v0.6.13 (preview)";
+  if (/module\.prop/.test(cmd)) return "version=v0.6.14 (preview)";
   const m = cmd.match(/bprate (\S+)(?: (\S+))?/);
   if (/bprate state/.test(cmd)) return Object.entries(mock).map(([k, v]) => k + "=" + v).join("\n");
   if (/bpreport/.test(cmd)) return "Saved /data/local/tmp/bitperfect-report.txt and /sdcard/Download/bitperfect-report.txt";

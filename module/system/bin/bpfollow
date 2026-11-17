@@ -9,7 +9,7 @@ echo $$ > "$PIDF"
 log() { echo "$(date '+%F %T') $*" >> "$LOG"; [ "$(wc -c < "$LOG")" -gt 100000 ] && { tail -n 200 "$LOG" > "$LOG.t"; mv "$LOG.t" "$LOG"; }; }
 last=""; n=0; sw=0; win=$(date +%s); t0=0; prev=""
 fail=0
-log "bpfollow v0.6.13 started"
+log "bpfollow v0.6.14 started"
 while [ -f "$STATE/auto" ]; do
   card=$(usb_card)
   if [ -z "$card" ]; then last=""; n=0; nap 1.5; continue; fi

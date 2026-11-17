@@ -2,8 +2,8 @@
 
 **Your music. Your DAC. No unnecessary resampling.**
 
-![status: pre-release](https://img.shields.io/badge/status-pre--release-orange)
-![version: 0.6.13](https://img.shields.io/badge/version-0.6.13-blue)
+![status: beta](https://img.shields.io/badge/status-beta-orange)
+![version: 0.6.14](https://img.shields.io/badge/version-0.6.14-blue)
 ![license: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
 **Download:** go to the [Releases page](../../releases), open the newest version at the top, and download the `.zip` under **Assets**. Then follow the [Quick start](#quick-start).
@@ -39,6 +39,15 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 - Work on the 3.5 mm jack (tested on an LG V30: the jack path is fixed at 48 kHz / 16-bit).
 - Fix volume or effects inside the music app, or enabled system effects ("Volume listener" and similar).
 - Guarantee Hi-Res delivery; that depends on the service, subscription, track and DAC.
+
+## How it knows the track's sample rate
+
+It does not read the player's metadata. The follower polls Android's audio server (`dumpsys media.audio_flinger`), finds the active track in the track table and takes the rate that track is opened at, so it follows what is really being played whatever the app claims.
+
+- It polls about every 0.4 s and needs a second poll to confirm a new rate before switching, so a brief glitch does not trigger a restart. The optional fast mode skips the confirmation and polls about every 0.12 s.
+- When the rate changes it asks the backend to set the USB mixer to that rate, or to a x2 / x4 / x8 multiple if the DAC does not support it. It then waits for the audio server to come back before carrying on.
+- More than 6 switches in 2 minutes turns auto-follow off, and two failed backend calls do the same, so a misbehaving source cannot loop forever.
+- In the maintainer's testing with many Apple Music songs, the rate never changed in the middle of a song, so switches happen when a new track starts. A mid-stream rate change (some radio streams, for example) should be caught on the next poll, but it has not been tested.
 
 ## How it is built
 
@@ -137,7 +146,7 @@ Some older docs were written for earlier versions and may mention outdated detai
 
 ## Reporting issues
 
-Use [GitHub Issues](../../issues). In the WebUI, open **Tools → Save full report to Downloads** while music is playing and attach `bitperfect-report.txt` (review it first). Please include device, ROM, Android version, root solution and manager, DAC, app, and the track's format. For security problems see [SECURITY.md](SECURITY.md).
+Use [GitHub Issues](../../issues), or ask and share DAC reports on the [Discord server](https://discord.gg/8bKkanMb3x) (SampleRate Support Group). In the WebUI, open **Tools → Save full report to Downloads** while music is playing and attach `bitperfect-report.txt` (review it first). Please include device, ROM, Android version, root solution and manager, DAC, app, and the track's format. For security problems see [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
