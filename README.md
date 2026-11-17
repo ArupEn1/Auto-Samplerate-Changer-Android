@@ -123,10 +123,23 @@ EQ and parametric EQ (the system equalizer, Wavelet and similar apps, or an EQ i
 - **It is no longer bit-exact / bit-perfect while an EQ is on,** because an EQ changes the samples. Turn the EQ off if you want bit-exact / bit-perfect playback.
 - Confirmed working by the maintainer; other ROMs and EQ apps may behave differently. `bpstatus` lists any enabled effects, so you can see what is active.
 
+## Tracks above 96 kHz are still resampled
+
+If the WebUI says **Resampled** for a 192 kHz track (for example "Mixer 96 kHz, Source 192 kHz") even though the module asked for 192 kHz, your phone's USB audio driver is probably locked to 96 kHz. The WebUI report then shows the backend warning about the "96kHz lock". Seen on a Moto Edge 30 Fusion (LineageOS 24, `bypass-offload-safer`).
+
+zyhk's separate modules lift that limit:
+
+1. On **APatch**, install [Compatible Magisk-mirroring](https://github.com/Magisk-Modules-Alt-Repo/compatible-magisk-mirroring) first and reboot. Without it, the unlocker's installer stops with "no magisk-mirrors".
+2. Install [usb-samplerate-unlocker](https://github.com/Magisk-Modules-Alt-Repo/usb-samplerate-unlocker) and reboot. It patches vendor libraries, so read its page first.
+3. In the WebUI, turn **Auto-follow** off and on once so the follower restarts, then play a 192 kHz track.
+
+Confirmed on the Moto above (192 kHz works afterwards); other phones are untested. Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md#rates-above-96-khz-usb-driver-lock).
+
 ## Known limitations
 
 - Each rate switch restarts the audio server, so there is a short interruption and the first moments of a track may use the old rate.
 - DACs without 88.2 / 176.4 kHz still force resampling for those tracks.
+- On some phones the USB audio driver is locked to 96 kHz, so tracks above that stay resampled. See [Tracks above 96 kHz are still resampled](#tracks-above-96-khz-are-still-resampled).
 - Digital volume below maximum and enabled effects break bit-exactness. On LG phones the vendor "Volume listener" effect may show up as enabled.
 - `bpstatus` confirms Android is playing at the track's own rate. While USB offload is active, Android can't show the final rate sent over USB; a DAC with a display or indicator can confirm the output sampling rate.
 

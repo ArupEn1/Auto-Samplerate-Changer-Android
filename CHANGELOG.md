@@ -2,6 +2,9 @@
 
 Versions are module versions (`module/module.prop`). Nothing here is a validated release.
 
+## Unreleased
+- README: Known limitations now explains the 96 kHz USB driver lock (192 kHz tracks resampled to 96 kHz) and links zyhk's usb-samplerate-unlocker. Notes that it was confirmed on a Moto Edge 30 Fusion, that APatch needs Compatible Magisk-mirroring first, and that Auto-follow should be toggled off and on afterwards. docs/COMPATIBILITY.md has a new section with the Moto result and links to both modules.
+
 ## 0.6.14
 - README: new section "How it knows the track's sample rate" (AudioFlinger track table, polling and confirmation, switch limits, what has and has not been tested).
 - README: link to the SampleRate Support Group Discord server in "Reporting issues".
