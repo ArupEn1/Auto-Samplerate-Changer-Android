@@ -123,7 +123,7 @@ EQ and parametric EQ (the system equalizer, Wavelet and similar apps, or an EQ i
 - **It is no longer bit-exact / bit-perfect while an EQ is on,** because an EQ changes the samples. Turn the EQ off if you want bit-exact / bit-perfect playback.
 - Confirmed working by the maintainer; other ROMs and EQ apps may behave differently. `bpstatus` lists any enabled effects, so you can see what is active.
 
-## Tracks above 96 kHz are still resampled
+## If Tracks above 96 kHz are still resampled
 
 If the WebUI says **Resampled** for a 192 kHz track (for example "Mixer 96 kHz, Source 192 kHz") even though the module asked for 192 kHz, your phone's USB audio driver is probably locked to 96 kHz. The WebUI report then shows the backend warning about the "96kHz lock". Seen on a Moto Edge 30 Fusion (LineageOS 24, `bypass-offload-safer`).
 
