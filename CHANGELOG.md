@@ -3,6 +3,8 @@
 Versions are module versions (`module/module.prop`). Nothing here is a validated release.
 
 ## Unreleased
+
+- README: Screenshots section (docs/screenshots).
 - README: Known limitations now explains the 96 kHz USB driver lock (192 kHz tracks resampled to 96 kHz) and links zyhk's usb-samplerate-unlocker. Notes that it was confirmed on a Moto Edge 30 Fusion, that APatch needs Compatible Magisk-mirroring first, and that Auto-follow should be toggled off and on afterwards. docs/COMPATIBILITY.md has a new section with the Moto result and links to both modules.
 
 ## 0.6.14

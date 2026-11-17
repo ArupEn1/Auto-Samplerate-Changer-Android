@@ -40,6 +40,19 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 - Fix volume or effects inside the music app, or enabled system effects ("Volume listener" and similar).
 - Guarantee Hi-Res delivery; that depends on the service, subscription, track and DAC.
 
+## Screenshots
+
+<table>
+<tr><td align="center"><a href="docs/screenshots/01.jpg"><img src="docs/screenshots/01.jpg" width="200" alt="First run: Auto-follow nudge"></a><br><sub>First run: Auto-follow nudge</sub></td><td align="center"><a href="docs/screenshots/02.jpg"><img src="docs/screenshots/02.jpg" width="200" alt="No USB output"></a><br><sub>No USB output</sub></td><td align="center"><a href="docs/screenshots/03.jpg"><img src="docs/screenshots/03.jpg" width="200" alt="Apple Music, 96 kHz track"></a><br><sub>Apple Music, 96 kHz track</sub></td><td align="center"><a href="docs/screenshots/04.jpg"><img src="docs/screenshots/04.jpg" width="200" alt="Status, 96 kHz rate-matched"></a><br><sub>Status, 96 kHz rate-matched</sub></td></tr>
+<tr><td align="center"><a href="docs/screenshots/05.jpg"><img src="docs/screenshots/05.jpg" width="200" alt="Apple Music, 44.1 kHz track"></a><br><sub>Apple Music, 44.1 kHz track</sub></td><td align="center"><a href="docs/screenshots/06.jpg"><img src="docs/screenshots/06.jpg" width="200" alt="Status, 44.1 kHz rate-matched"></a><br><sub>Status, 44.1 kHz rate-matched</sub></td><td align="center"><a href="docs/screenshots/07.jpg"><img src="docs/screenshots/07.jpg" width="200" alt="Apple Music, 192 kHz track"></a><br><sub>Apple Music, 192 kHz track</sub></td><td align="center"><a href="docs/screenshots/08.jpg"><img src="docs/screenshots/08.jpg" width="200" alt="Status, 192 kHz rate-matched"></a><br><sub>Status, 192 kHz rate-matched</sub></td></tr>
+<tr><td align="center"><a href="docs/screenshots/09.jpg"><img src="docs/screenshots/09.jpg" width="200" alt="Rate tab"></a><br><sub>Rate tab</sub></td><td align="center"><a href="docs/screenshots/10.jpg"><img src="docs/screenshots/10.jpg" width="200" alt="Auto tab"></a><br><sub>Auto tab</sub></td><td align="center"><a href="docs/screenshots/11.jpg"><img src="docs/screenshots/11.jpg" width="200" alt="Audio tab"></a><br><sub>Audio tab</sub></td><td align="center"><a href="docs/screenshots/12.jpg"><img src="docs/screenshots/12.jpg" width="200" alt="Audio: which mode should I pick"></a><br><sub>Audio: which mode should I pick</sub></td></tr>
+<tr><td align="center"><a href="docs/screenshots/13.jpg"><img src="docs/screenshots/13.jpg" width="200" alt="Audio: mode list"></a><br><sub>Audio: mode list</sub></td><td align="center"><a href="docs/screenshots/14.jpg"><img src="docs/screenshots/14.jpg" width="200" alt="Audio: bit depth list"></a><br><sub>Audio: bit depth list</sub></td><td align="center"><a href="docs/screenshots/15.jpg"><img src="docs/screenshots/15.jpg" width="200" alt="Tools, Night theme"></a><br><sub>Tools, Night theme</sub></td><td align="center"><a href="docs/screenshots/16.jpg"><img src="docs/screenshots/16.jpg" width="200" alt="Tools: diagnostics and report"></a><br><sub>Tools: diagnostics and report</sub></td></tr>
+<tr><td align="center"><a href="docs/screenshots/17.jpg"><img src="docs/screenshots/17.jpg" width="200" alt="Day theme"></a><br><sub>Day theme</sub></td><td align="center"><a href="docs/screenshots/18.jpg"><img src="docs/screenshots/18.jpg" width="200" alt="Retro paper theme"></a><br><sub>Retro paper theme</sub></td><td align="center"><a href="docs/screenshots/19.jpg"><img src="docs/screenshots/19.jpg" width="200" alt="Retro night theme"></a><br><sub>Retro night theme</sub></td><td align="center"><a href="docs/screenshots/20.jpg"><img src="docs/screenshots/20.jpg" width="200" alt="Wavelet equalizer on"></a><br><sub>Wavelet equalizer on</sub></td></tr>
+<tr><td align="center"><a href="docs/screenshots/21.jpg"><img src="docs/screenshots/21.jpg" width="200" alt="Status with sound effects on"></a><br><sub>Status with sound effects on</sub></td><td align="center"><a href="docs/screenshots/22.jpg"><img src="docs/screenshots/22.jpg" width="200" alt="Wavelet idle, nothing applied"></a><br><sub>Wavelet idle, nothing applied</sub></td><td align="center"><a href="docs/screenshots/23.jpg"><img src="docs/screenshots/23.jpg" width="200" alt="Status, 192 kHz clean"></a><br><sub>Status, 192 kHz clean</sub></td></tr>
+</table>
+
+Tap an image for full size. More in the XDA thread: XDA_LINK_HERE
+
 ## How it knows the track's sample rate
 
 It does not read the player's metadata. The follower polls Android's audio server (`dumpsys media.audio_flinger`), finds the active track in the track table and takes the rate that track is opened at, so it follows what is really being played whatever the app claims.
@@ -123,7 +136,7 @@ EQ and parametric EQ (the system equalizer, Wavelet and similar apps, or an EQ i
 - **It is no longer bit-exact / bit-perfect while an EQ is on,** because an EQ changes the samples. Turn the EQ off if you want bit-exact / bit-perfect playback.
 - Confirmed working by the maintainer; other ROMs and EQ apps may behave differently. `bpstatus` lists any enabled effects, so you can see what is active.
 
-## If Tracks above 96 kHz are still resampled
+## If tracks above 96 kHz are still resampled
 
 If the WebUI says **Resampled** for a 192 kHz track (for example "Mixer 96 kHz, Source 192 kHz") even though the module asked for 192 kHz, your phone's USB audio driver is probably locked to 96 kHz. The WebUI report then shows the backend warning about the "96kHz lock". Seen on a Moto Edge 30 Fusion (LineageOS 24, `bypass-offload-safer`).
 
@@ -139,7 +152,7 @@ Confirmed on the Moto above (192 kHz works afterwards); other phones are unteste
 
 - Each rate switch restarts the audio server, so there is a short interruption and the first moments of a track may use the old rate.
 - DACs without 88.2 / 176.4 kHz still force resampling for those tracks.
-- On some phones the USB audio driver is locked to 96 kHz, so tracks above that stay resampled. See [If Tracks above 96 kHz are still resampled](#If-tracks-above-96-khz-are-still-resampled).
+- On some phones the USB audio driver is locked to 96 kHz, so tracks above that stay resampled. See [If tracks above 96 kHz are still resampled](#if-tracks-above-96-khz-are-still-resampled).
 - Digital volume below maximum and enabled effects break bit-exactness. On LG phones the vendor "Volume listener" effect may show up as enabled.
 - `bpstatus` confirms Android is playing at the track's own rate. While USB offload is active, Android can't show the final rate sent over USB; a DAC with a display or indicator can confirm the output sampling rate.
 
