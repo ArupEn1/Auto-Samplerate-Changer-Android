@@ -61,7 +61,7 @@ It does not read the player's metadata. The follower polls Android's audio serve
 - It polls about every 0.4 s and needs a second poll to confirm a new rate before switching, so a brief glitch does not trigger a restart. The optional fast mode skips the confirmation and polls about every 0.12 s.
 - When the rate changes it asks the backend to set the USB mixer to that rate, or to a x2 / x4 / x8 multiple if the DAC does not support it. It then waits for the audio server to come back before carrying on.
 - More than 6 switches in 2 minutes turns auto-follow off, and two failed backend calls do the same, so a misbehaving source cannot loop forever.
-- In the maintainer's testing with many Apple Music songs, the rate never changed in the middle of a song, so switches happen when a new track starts. A mid-stream rate change (some radio streams, for example) should be caught on the next poll, but it has not been tested.
+- In testing with many Apple Music songs, the rate never changed in the middle of a song, so switches happen when a new track starts. A mid-stream rate change (some radio streams, for example) should be caught on the next poll, but it has not been tested.
 
 ## How it is built
 
