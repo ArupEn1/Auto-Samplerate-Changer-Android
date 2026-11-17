@@ -139,7 +139,7 @@ Confirmed on the Moto above (192 kHz works afterwards); other phones are unteste
 
 - Each rate switch restarts the audio server, so there is a short interruption and the first moments of a track may use the old rate.
 - DACs without 88.2 / 176.4 kHz still force resampling for those tracks.
-- On some phones the USB audio driver is locked to 96 kHz, so tracks above that stay resampled. See [Tracks above 96 kHz are still resampled](#tracks-above-96-khz-are-still-resampled).
+- On some phones the USB audio driver is locked to 96 kHz, so tracks above that stay resampled. See [If Tracks above 96 kHz are still resampled](#If-tracks-above-96-khz-are-still-resampled).
 - Digital volume below maximum and enabled effects break bit-exactness. On LG phones the vendor "Volume listener" effect may show up as enabled.
 - `bpstatus` confirms Android is playing at the track's own rate. While USB offload is active, Android can't show the final rate sent over USB; a DAC with a display or indicator can confirm the output sampling rate.
 
