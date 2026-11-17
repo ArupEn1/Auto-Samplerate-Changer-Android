@@ -39,6 +39,7 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 - Work on the 3.5 mm jack (tested on an LG V30: the jack path is fixed at 48 kHz / 16-bit).
 - Fix volume or effects inside the music app, or enabled system effects ("Volume listener" and similar).
 - Guarantee Hi-Res delivery; that depends on the service, subscription, track and DAC.
+- Give one app exclusive access to the DAC. Android mixes every app into one stream at one rate. The module only switches the rate when exactly one track is playing; if several tracks are active at once it leaves the rate alone, so something may be resampled until only one is left.
 
 ## Screenshots
 
@@ -50,6 +51,8 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 <tr><td align="center"><a href="docs/screenshots/17.jpg"><img src="docs/screenshots/17.jpg" width="200" alt="Day theme"></a><br><sub>Day theme</sub></td><td align="center"><a href="docs/screenshots/18.jpg"><img src="docs/screenshots/18.jpg" width="200" alt="Retro paper theme"></a><br><sub>Retro paper theme</sub></td><td align="center"><a href="docs/screenshots/19.jpg"><img src="docs/screenshots/19.jpg" width="200" alt="Retro night theme"></a><br><sub>Retro night theme</sub></td><td align="center"><a href="docs/screenshots/20.jpg"><img src="docs/screenshots/20.jpg" width="200" alt="Wavelet equalizer on"></a><br><sub>Wavelet equalizer on</sub></td></tr>
 <tr><td align="center"><a href="docs/screenshots/21.jpg"><img src="docs/screenshots/21.jpg" width="200" alt="Status with sound effects on"></a><br><sub>Status with sound effects on</sub></td><td align="center"><a href="docs/screenshots/22.jpg"><img src="docs/screenshots/22.jpg" width="200" alt="Wavelet idle, nothing applied"></a><br><sub>Wavelet idle, nothing applied</sub></td><td align="center"><a href="docs/screenshots/23.jpg"><img src="docs/screenshots/23.jpg" width="200" alt="Status, 192 kHz clean"></a><br><sub>Status, 192 kHz clean</sub></td></tr>
 </table>
+
+Tap an image for full size. More in the XDA thread: XDA_LINK_HERE
 
 ## How it knows the track's sample rate
 
@@ -151,6 +154,7 @@ Confirmed on the Moto above (192 kHz works afterwards); other phones are unteste
 - Each rate switch restarts the audio server, so there is a short interruption and the first moments of a track may use the old rate.
 - DACs without 88.2 / 176.4 kHz still force resampling for those tracks.
 - On some phones the USB audio driver is locked to 96 kHz, so tracks above that stay resampled. See [If tracks above 96 kHz are still resampled](#if-tracks-above-96-khz-are-still-resampled).
+- AIDL devices are not supported for now, for example the Samsung Galaxy Z Fold8. Their audio policy comes from the AIDL audio HAL, which is a current limitation of the bundled backend, zyhk's [USB_SampleRate_Changer](https://github.com/yzyhk904/USB_SampleRate_Changer) (it stops with "Recent AIDL only devices are not supported!"). Check with `su -c "dumpsys media.audio_policy | grep -i -A2 'config source'"`: a file path is fine, `AIDL HAL` is not. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md#not-supported-aidl-only-audio-hal).
 - Digital volume below maximum and enabled effects break bit-exactness. On LG phones the vendor "Volume listener" effect may show up as enabled.
 - `bpstatus` confirms Android is playing at the track's own rate. While USB offload is active, Android can't show the final rate sent over USB; a DAC with a display or indicator can confirm the output sampling rate.
 

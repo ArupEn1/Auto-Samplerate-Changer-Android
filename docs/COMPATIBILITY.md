@@ -30,6 +30,15 @@ On some phones the USB audio driver is locked to 96 kHz. The module still asks f
 |---|---|---|---|---|
 | Moto Edge 30 Fusion (`tundra`) | LineageOS 24 / Android 17 | APatch + Hybrid Mount metamodule | TRN BlackPearl ("TEC USB DAC") | Before: a 192 kHz track was `RESAMPLED 192 kHz->96 kHz` in `bypass-offload-safer` (report captured). After installing Compatible Magisk-mirroring, rebooting and installing the unlocker: 192 kHz works, reported by the maintainer. After installing, Auto-follow had to be turned off and on once. |
 
+## Not supported: AIDL-only audio HAL
+**AIDL devices are not supported for now**, for example the Samsung Galaxy Z Fold8. These phones serve their audio policy from the AIDL audio HAL instead of a policy file. `dumpsys media.audio_policy` then prints `Config source: AIDL HAL` (a working phone prints a file path). This is a current limitation of the bundled backend, zyhk's [USB_SampleRate_Changer](https://github.com/yzyhk904/USB_SampleRate_Changer), which works by editing that policy file. On these phones there is no file to edit, so it stops with "Recent AIDL only devices are not supported!", and the module disables auto-follow. This depends on the ROM and its audio stack, not on the phone's age or Android version: the Moto above runs Android 17 and works.
+
+| Device | ROM / Android | Root | Result |
+|---|---|---|---|
+| Samsung Galaxy Z Fold8 | One UI 9 / Android 17 | KernelSU | Not supported for now: `Config source: AIDL HAL`, backend error above (reported in issue #1) |
+
+This is a limit of the backend. The backend's author is looking into AIDL devices, but there is no fix yet and no promise of one; if upstream gets it working, it can be merged into this module. For now these phones stay unsupported. Tracked upstream: [USB_SampleRate_Changer#44](https://github.com/yzyhk904/USB_SampleRate_Changer/issues/44) and [#42](https://github.com/yzyhk904/USB_SampleRate_Changer/issues/42). To check your phone: `su -c "dumpsys media.audio_policy | grep -i -A2 'config source'"`.
+
 ## Legend
 - **Confirmed rate-matched:** `bpstatus` showed `rate-matched`, `gain 0 dB`, no enabled effects while playing.
 - **Partial:** pin observed, but one of the above missing.

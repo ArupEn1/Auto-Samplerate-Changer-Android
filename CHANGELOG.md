@@ -4,6 +4,14 @@ Versions are module versions (`module/module.prop`). Nothing here is a validated
 
 ## Unreleased
 
+- Hardening: the module's own temporary files (report, diagnostics, installer log) now go in the root-only `/data/adb/usb_dac_bitperfect/` instead of the shell-writable `/data/local/tmp` (avoids a symlink overwrite by the adb shell user). `load_probe` now only accepts plain tokens from `dumpsys` text before assigning them.
+
+- bpfollow: on "Recent AIDL only devices are not supported" it now logs a clear message and turns auto-follow off at once, resuming the player first, instead of retrying.
+- bpverify (and so the report) now shows the audio policy source (`dumpsys media.audio_policy` "Config source").
+- docs/COMPATIBILITY.md and README: new "Not supported: AIDL-only audio HAL" note (Galaxy Z Fold8 report).
+
+- README: says what happens when several apps play at once (the rate is left alone; no exclusive access).
+
 - README: Screenshots section (docs/screenshots).
 - README: Known limitations now explains the 96 kHz USB driver lock (192 kHz tracks resampled to 96 kHz) and links zyhk's usb-samplerate-unlocker. Notes that it was confirmed on a Moto Edge 30 Fusion, that APatch needs Compatible Magisk-mirroring first, and that Auto-follow should be toggled off and on afterwards. docs/COMPATIBILITY.md has a new section with the Moto result and links to both modules.
 

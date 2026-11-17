@@ -9,6 +9,7 @@ echo "### installer log"; cat "$MODDIR/install.log" 2>&1 | head -40
 echo "### boot.log"; cat "$STATE/boot.log" 2>&1
 echo "### bundled backend"; ls "$MODDIR/usbsrc" 2>&1 | head; sed -n "2,3p" "$MODDIR/usbsrc/USB_SampleRate_Changer.sh"; cat "$MODDIR/usbsrc/.config" 2>&1 | head -20; ls -lZ /data/local/tmp/audio_conf_generated.xml 2>&1
 F=/vendor/etc/audio_policy_configuration.xml; [ -r "$MODDIR/usbsrc/.config" ] && . "$MODDIR/usbsrc/.config" && [ -n "$PolicyFile" ] && F=$PolicyFile
+echo "### audio policy source (a file path = usable; 'AIDL HAL' = not supported by the backend)"; dumpsys media.audio_policy 2>/dev/null | grep -i -m1 "config source"
 echo "### policy files on device (loader order: /odm, /vendor, /system)"; find /odm/etc /vendor/etc /system/etc /product/etc -name '*audio_policy*.xml' 2>/dev/null
 echo "active policy file: $F"; ls -lZ "$F"; grep -n -E "hifi_playback|usb_device output|USB Device Out|USB Headset Out" "$F" | cut -c1-200; grep -n -A1 'sink="USB' "$F" | cut -c1-200
 echo "### usb policy file (the one --usb-only edits)"; ls -lZ /vendor/etc/usb_audio_policy_configuration.xml 2>&1; grep -n -E "usb_device output|samplingRates" /vendor/etc/usb_audio_policy_configuration.xml 2>&1 | cut -c1-200

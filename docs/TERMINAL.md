@@ -38,7 +38,7 @@ You do not need a terminal to use Auto Samplerate Changer: everything below is a
 |---|---|
 | `bpverify` | Shows why the overlay is or is not active. Include this in bug reports. |
 | `bpcheck` | Status plus DAC capabilities, ALSA view, USB threads, track table and volume. |
-| `bpdiag` | Environment, policy and AudioFlinger diagnostics, written to `/data/local/tmp/bpdiag.txt`. |
+| `bpdiag` | Environment, policy and AudioFlinger diagnostics, written to `/data/adb/usb_dac_bitperfect/bpdiag.txt`. |
 | `bpreport` | **Sanitized report** written to `/sdcard/Download/bitperfect-report.txt`. Run it while music is playing and review it before sharing. |
 | `bpdump` | Full dumps for bug reports. |
 | `bpoffload on\|off` | Experiment: disable Qualcomm USB offload at the next boot. |

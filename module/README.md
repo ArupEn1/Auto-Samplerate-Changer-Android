@@ -17,7 +17,7 @@ Tested with APatch (Moto Edge 30 Fusion, Android 17) and KernelSU Next (Galaxy T
 | `bprate deepbuffer keep\|trim` | keep or remove `deep_buffer` on USB routes |
 | `bpverify` | why the overlay is or is not active (share this when reporting) |
 | `bpreport` | **sanitized tester report** (run while playing) → `/sdcard/Download/bitperfect-report.txt` |
-| `bpdiag` | environment/policy/AudioFlinger diagnostics → `/data/local/tmp/bpdiag.txt` |
+| `bpdiag` | environment/policy/AudioFlinger diagnostics → `/data/adb/usb_dac_bitperfect/bpdiag.txt` |
 | `bpdump` | full AudioFlinger + policy dumps → `/sdcard/Download/af_full.txt` |
 | `bpoffload on\|off\|status` | experiment: disable Qualcomm USB offload at next boot |
 

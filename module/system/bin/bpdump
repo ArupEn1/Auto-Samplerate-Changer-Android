@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # Save full AudioFlinger + policy dumps (run while music plays). Share /sdcard/Download/af_full.txt
-OUT=/data/local/tmp/af_full.txt
+OUT=/data/adb/usb_dac_bitperfect/af_full.txt   # root-only dir, not the shell-writable /data/local/tmp
 { echo "### date $(date)"; echo "### flinger"; dumpsys media.audio_flinger; echo "### policy"; dumpsys media.audio_policy; } > "$OUT" 2>&1
 cp "$OUT" /sdcard/Download/af_full.txt 2>/dev/null
 echo "Saved $OUT ($(wc -c < $OUT) bytes) and /sdcard/Download/af_full.txt"

@@ -40,6 +40,12 @@ while [ -f "$STATE/auto" ]; do
     # the backend failed: log why, do not retry in a tight loop
     log "backend FAILED for $want Hz (rc=$rc): $(echo "$out" | tr '\n' ' ' | cut -c1-400)"
     fail=$((fail+1))
+    if echo "$out" | grep -q "AIDL only"; then
+      # not retryable: this phone serves its audio policy from the AIDL audio HAL, so there is no policy file for the backend to edit
+      log "this phone is not supported: its audio policy comes from the AIDL audio HAL (no policy file to edit). auto-follow disabled. See docs/COMPATIBILITY.md"
+      [ "$paused" = 1 ] && media_cmd play
+      rm -f "$STATE/auto"; break
+    fi
     if [ "$fail" -ge 2 ]; then log "backend failed twice; auto-follow disabled (run: bprate $want  to see the error)"; rm -f "$STATE/auto"; break; fi
     [ "$paused" = 1 ] && media_cmd play
     last=""; n=0; nap 5; continue

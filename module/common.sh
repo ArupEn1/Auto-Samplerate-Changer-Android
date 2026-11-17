@@ -154,7 +154,14 @@ af_probe() {
 }
 
 load_probe() { thr=; mrate=; mfmt=; busy=0; active=0; trate=-; tfmt=-; tgain=-; tpvol=-; tcount=0
-  for kv in $(af_probe); do case "$kv" in *=*) eval "${kv%%=*}='${kv#*=}'" ;; esac; done; }
+  for kv in $(af_probe); do
+    case "$kv" in
+      *=*) _v=${kv#*=}
+           # only plain tokens are assigned: the values come from dumpsys text, never run it as shell
+           case "$_v" in *[!A-Za-z0-9._+-]*) continue ;; esac
+           case "${kv%%=*}" in thr|mrate|mfmt|busy|active|trate|tfmt|tgain|tpvol|tcount) eval "${kv%%=*}='$_v'" ;; esac ;;
+    esac
+  done; }
 
 # bit depth number from a HAL/AudioFlinger format name or hex code
 bits_num() {

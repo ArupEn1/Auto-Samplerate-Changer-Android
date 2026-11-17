@@ -93,7 +93,7 @@ loop while $STATE/auto exists:
 | `.../follow.log`, `.../follow.pid`, `.../boot.log` | daemon log, pid, boot self-check |
 | `<module>/orig/`, `orig.list`, `orig.fp` | pristine policy copies, `real-path|copy` list, build fingerprint |
 | `<module>/install.log` | installer decisions |
-| `/data/local/tmp/bitperfect_install*.{log,txt}`, `/sdcard/Download/` copies | installer report |
+| `/data/adb/usb_dac_bitperfect/` (install and report temp files), `/sdcard/Download/` copies | installer report |
 
 ## Known technical limits
 
