@@ -1,4 +1,4 @@
-# Auto Samplerate Changer for Android: module usage (v0.6.14, beta)
+# Auto Samplerate Changer for Android: module usage (v0.7.0, beta)
 
 Flash `Auto-Samplerate-Changer-<version>.zip` in Magisk, APatch or KernelSU, **reboot**, then use a root shell (Termux: `su`).
 
@@ -14,6 +14,9 @@ Tested with APatch (Moto Edge 30 Fusion, Android 17) and KernelSU Next (Galaxy T
 | `bprate mode usb-only` | least invasive mode: only the USB audio policy file is changed, the main policy (speaker, headphones, Bluetooth) is left alone. Use it if sound disappears on another output with the default mode |
 | `bprate pause on\|off\|<seconds>` | pause the player just before a rate switch and resume it after the audio server is back (default on, 1.5 s) |
 | `bprate fast on\|off` | detect a new track's rate on the first poll and poll more often, so the pause comes sooner (more CPU use) |
+| `bprate jack on\|off` | experimental: also follow the 3.5 mm jack when no USB DAC is used (needs a mode such as `bypass-offload`) |
+| `bprate extended on\|off` | let the jack be asked for 352.8/384 kHz (off by default; USB DACs use their own rate list) |
+| `bprate profiles on\|off` / `bprate profile usb\|jack\|other <mode> [bits]` | experimental: a mode and bit depth per output (USB DAC, jack, speaker/other); needs `bprate auto on` |
 | `bprate deepbuffer keep\|trim` | keep or remove `deep_buffer` on USB routes |
 | `bpverify` | why the overlay is or is not active (share this when reporting) |
 | `bpreport` | **sanitized tester report** (run while playing) → `/sdcard/Download/bitperfect-report.txt` |

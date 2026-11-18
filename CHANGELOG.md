@@ -2,18 +2,29 @@
 
 Versions are module versions (`module/module.prop`). Nothing here is a validated release.
 
-## Unreleased
+## 0.7.0
 
-- Hardening: the module's own temporary files (report, diagnostics, installer log) now go in the root-only `/data/adb/usb_dac_bitperfect/` instead of the shell-writable `/data/local/tmp` (avoids a symlink overwrite by the adb shell user). `load_probe` now only accepts plain tokens from `dumpsys` text before assigning them.
+The module now reaches beyond USB: it can follow the 3.5 mm jack and switch modes per output. Both are experimental and off by default. They were tested on an LG V30+ (LineageOS 22.2, Magisk).
 
-- bpfollow: on "Recent AIDL only devices are not supported" it now logs a clear message and turns auto-follow off at once, resuming the player first, instead of retrying.
-- bpverify (and so the report) now shows the audio policy source (`dumpsys media.audio_policy` "Config source").
-- docs/COMPATIBILITY.md and README: new "Not supported: AIDL-only audio HAL" note (Galaxy Z Fold8 report).
+### New
+- **Follow the 3.5 mm jack** (experimental): `bprate jack on`, or the switch on the Auto tab. With no USB DAC, the follower reads the wired-headset output thread and sets the mixer to the track's rate. It does nothing in modes that keep the jack at 48 kHz (`bypass-offload-safer`, `offload-safer`, `safe`, `safest`, `safest-auto`) and logs a note. On the V30+ it switched to 44.1, 48 and 192 kHz as tracks changed, and at 192 kHz the headphone output thread and the kernel stream both ran at 192000 Hz.
+- **Per-output profiles** (experimental): `bprate profiles on`, `bprate profile usb|jack|other <mode> [bits]`, or the card on the Auto tab. Each output (USB DAC, 3.5 mm jack, speaker/other) gets its own mode and bit depth, and the follower switches when the output changes. Nothing is preset, and an output without a profile is left alone. The output has to stay the same for two checks before a switch, an unreadable dump never counts as an unplug, and more than 4 switches in 2 minutes or two backend failures turn profiles off. A jack profile also turns on jack following. On the V30+ it switched jack (`bypass-offload`) and speaker (`safest`) correctly when headphones were plugged and unplugged (about 5 s), and on a USB DAC (`bypass-offload-safer`) it switched and kept following the track rate.
+- **Unlock extended sample rates (jack)** (`bprate extended on|off`, Auto tab): off by default, so the jack is never asked for more than 192 kHz (a track above that is followed at half its rate, once). On: 352.8 and 384 kHz are allowed for the jack, and the Rate tab shows 352.8 and 384 kHz buttons. The V30+ jack accepted 384 kHz (output thread and kernel stream both at 384000 Hz, normal sound). USB DACs are not affected: they use the rates the DAC lists.
+- **USB driver limit notice**: the Status tab shows a small card when the 96 kHz USB driver lock is detected, meaning bpfollow asked a USB DAC for more than 96 kHz and the mixer stayed at 96 kHz or lower. It names zyhk's usb-samplerate-unlocker, hides itself when an unlock module is installed (usb-samplerate-unlocker, audio-samplerate-changer or hifi-maximizer-mod), and can be dismissed. The follow log says the same.
 
-- README: says what happens when several apps play at once (the rate is left alone; no exclusive access).
+### Changed
+- On the 3.5 mm jack, a volume below max is reported without the "set media volume to MAX" advice. That advice stays for USB DACs.
+- The `detect` and `restart` times in the follow log come from `/proc/uptime`, so they no longer go negative when the clock steps after an audio server restart.
+- The Status tab reloads the settings every 6 seconds while auto refresh is on.
+- `bpverify` (and so the report) shows the audio policy source (`dumpsys media.audio_policy` "Config source"). `bprate state` also prints `jack`, `extended`, `profiles`, the profile of each output, `unlocker` and `lockseen`.
 
-- README: Screenshots section (docs/screenshots).
-- README: Known limitations now explains the 96 kHz USB driver lock (192 kHz tracks resampled to 96 kHz) and links zyhk's usb-samplerate-unlocker. Notes that it was confirmed on a Moto Edge 30 Fusion, that APatch needs Compatible Magisk-mirroring first, and that Auto-follow should be toggled off and on afterwards. docs/COMPATIBILITY.md has a new section with the Moto result and links to both modules.
+### Fixed and hardened
+- On "Recent AIDL only devices are not supported" the follower now logs a clear message and turns auto-follow off at once, resuming the player first, instead of retrying.
+- The module's own temporary files (report, diagnostics, installer log) now go in the root-only `/data/adb/usb_dac_bitperfect/` instead of the shell-writable `/data/local/tmp` (avoids a symlink overwrite by the adb shell user). `load_probe` only accepts plain tokens from `dumpsys` text before assigning them.
+
+### Docs
+- README: Screenshots section, what happens when several apps play at once, the 96 kHz USB driver lock and the unlock module (Compatible Magisk-mirroring is needed first on APatch and recent Magisk), the jack and profile sections, and AIDL-only devices (for example the Galaxy Z Fold8) listed as not supported.
+- docs/COMPATIBILITY.md: LG V30+ results for the jack, 384 kHz and profiles; Moto Edge 30 Fusion result with the unlocker; "Not supported: AIDL-only audio HAL".
 
 ## 0.6.14
 - README: new section "How it knows the track's sample rate" (AudioFlinger track table, polling and confirmation, switch limits, what has and has not been tested).

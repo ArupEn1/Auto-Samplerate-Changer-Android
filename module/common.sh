@@ -58,16 +58,78 @@ patch_ok() {
 }
 
 # ---- v0.2: auto-follow helpers ----
-usb_card() { for c in /proc/asound/card*; do [ -f "$c/usbid" ] && { echo "$c"; return; }; done; }
+# Which AudioFlinger output devices count as "the DAC path". Default: USB only. With the experimental jack flag
+# (bprate jack on) a wired 3.5 mm headset/headphone output counts too.
+# BP_KIND (set by bpfollow while profiles are on) narrows it to the one output that is in use right now.
+out_re() {
+  case "$BP_KIND" in usb) echo "AUDIO_DEVICE_OUT_USB"; return ;; jack) echo "AUDIO_DEVICE_OUT_WIRED_HEAD"; return ;; esac
+  if jack_on; then echo "AUDIO_DEVICE_OUT_(USB|WIRED_HEAD)"; else echo "AUDIO_DEVICE_OUT_USB"; fi
+}
+# The jack counts as an output when the flag is on, or when per-output profiles are on and the jack has a profile
+jack_on() { [ -f "$BP_STATE/jack" ] || { profiles_on && [ -s "$BP_STATE/prof_jack" ]; }; }
+# Extended sample rates (352.8 / 384 kHz) for the 3.5 mm jack: off by default, then the jack is never asked for more than 192 kHz.
+# The jack lists no rates, so this is a trial (it worked on an LG V30+). USB DACs are not affected: they use the rates the DAC lists.
+ext_on() { [ -f "$BP_STATE/extended" ]; }
+rate_cap() { if ext_on; then echo 384000; else echo 192000; fi; }
+# Rate to ask for when there is no USB DAC (jack only): the track rate, halved once if above the cap (no DAC rate list to check)
+jack_pick_rate() {
+  r=$1; _mx=$(rate_cap); [ "$r" -gt "$_mx" ] && r=$(( r / 2 ))
+  case $r in 44100|48000|88200|96000|176400|192000|352800|384000) [ "$r" -le "$_mx" ] && echo "$r" ;; esac
+}
+# The jack follows the rate only in modes that change the internal outputs; these modes keep them at 48 kHz (per the backend's docs)
+jack_mode_ok() { case "$(sr_flags)" in --bypass-offload-safer|--offload-safer|--safe|--safest|--safest-auto) return 1 ;; *) return 0 ;; esac; }
+# The signature of the USB driver's 96 kHz lock: a rate above 96 kHz was asked for, and the mixer sits at or under 96 kHz.
+# lock_signature <rate asked for> <mixer rate now>
+lock_signature() { [ "$1" -gt 96000 ] 2>/dev/null && [ -n "$2" ] && [ "$2" -gt 0 ] 2>/dev/null && [ "$2" -le 96000 ]; }
+# zyhk's backend only prints its 96 kHz warning when none of these modules is installed (it cannot tell whether the phone really has the lock)
+unlocker_present() {
+  for _um in usb-samplerate-unlocker audio-samplerate-changer hifi-maximizer-mod; do
+    [ -e "${BP_MODROOT:-/data/adb/modules}/$_um" ] && return 0
+  done
+  return 1
+}
+usb_card() { for c in "${BP_ASOUND:-/proc/asound}"/card*; do [ -f "$c/usbid" ] && { echo "$c"; return; }; done; }
+
+# ---- per-output profiles (bprate profiles on): each output gets its own mode and bit depth ----
+profiles_on() { [ -f "$BP_STATE/profiles" ]; }
+valid_mode() {
+  case "$1" in offload|offload-hifi-playback|offload-direct|offload-safer|bypass-offload|bypass-offload-safer|legacy|safe|safest|safest-auto|usb-only) return 0 ;; *) return 1 ;; esac
+}
+valid_bits() { case "$1" in 16|24|32|float) return 0 ;; *) return 1 ;; esac; }
+valid_out() { case "$1" in usb|jack|other) return 0 ;; *) return 1 ;; esac; }
+dump_policy() { if [ -n "$POLICY_DUMP_FILE" ]; then cat "$POLICY_DUMP_FILE"; else dumpsys media.audio_policy 2>/dev/null; fi; }
+# Which output is in use: usb (a USB audio card is present), jack (a wired headset/headphone is listed as an available output device)
+# or other (speaker, Bluetooth...). Prints nothing if the policy dump could not be read, so a restarting audio server never counts as "unplugged".
+out_kind() {
+  [ -n "$(usb_card)" ] && { echo usb; return; }
+  dump_policy | awkc '
+    /Available output devices/ { on = 1; seen = 1; next }
+    /Available input devices/ { on = 0 }
+    on && /\{AUDIO_DEVICE_OUT_WIRED_HEAD(SET|PHONE)/ { j = 1 }
+    END { if (seen) print (j ? "jack" : "other") }'
+}
+# Saved profile of an output as "mode:bits", or nothing
+prof_get() { valid_out "$1" && cat "$BP_STATE/prof_$1" 2>/dev/null; }
+# prof_set <usb|jack|other> <mode> [bits]; bits default to the current bit depth
+prof_set() {
+  valid_out "$1" || return 1; valid_mode "$2" || return 1
+  _pb=${3:-$(sr_bits)}; valid_bits "$_pb" || return 1
+  echo "$2:$_pb" > "$BP_STATE/prof_$1"
+}
+# What bpfollow should apply now for output <kind>: prints "mode:bits" only when the output has a profile that differs from what is in effect
+prof_pending() {
+  _p=$(prof_get "$1"); [ -n "$_p" ] || return 0
+  [ "$_p" = "$(sr_flags | sed 's/^--//'):$(sr_bits)" ] || echo "$_p"
+}
 
 dump_af() { if [ -n "$TRACK_DUMP_FILE" ]; then cat "$TRACK_DUMP_FILE"; else dumpsys media.audio_flinger 2>/dev/null; fi; }
 
 # Prints the source rate of the active track(s) on the USB output thread, only if exactly one distinct rate.
 track_rate() {
-  dump_af | awkc '
+  dump_af | awkc -v re="$(out_re)" '
   BEGIN { split("8000 11025 12000 16000 22050 24000 32000 44100 48000 88200 96000 176400 192000 352800 384000", a, " "); for (i in a) known[a[i]] = 1 }
   /^(Output|Playback|Direct|Offload|MMAP)[A-Za-z ]*thread/ { inusb = 0 }
-  /Output device/ && /USB/ { inusb = 1 }
+  $0 ~ re && /Output device/ { inusb = 1 }
   inusb && ($3 == "yes" || $2 == "yes") { for (i = 8; i <= NF; i++) if ($i in known) { seen[$i] = 1; break } }
   END { n = 0; for (r in seen) { n++; rate = r }; if (n == 1) print rate }'
 }
@@ -81,7 +143,7 @@ rate_supported() {
     END { exit ok ? 0 : 1 }'
 }
 
-# pick_rate <track rate> <stream0 file>: same rate if the DAC has it, else x2/x4/x8 multiple
+# pick_rate <track rate> <stream0 file>: same rate if the DAC has it, else x2/x4/x8 multiple (the DAC's own rate list decides; the extended-rates switch is for the jack only)
 pick_rate() {
   for m in 1 2 4 8; do
     c=$(( $1 * m ))
@@ -94,8 +156,8 @@ pick_rate() {
 
 # Prints "rate=<Hz> format=<HAL format> flags=<flags>" for every AudioFlinger output thread routed to USB
 usb_thread_info() {
-  dump_af | awkc '
-  function flush() { if (blk ~ /AUDIO_DEVICE_OUT_USB/ && r != "") print "thread=" nm " rate=" r " format=" f " flags=" fl; blk=""; r=""; f=""; fl="" }
+  dump_af | awkc -v re="$(out_re)" '
+  function flush() { if (blk ~ re && r != "") print "thread=" nm " rate=" r " format=" f " flags=" fl; blk=""; r=""; f=""; fl="" }
   /^Output thread/ { flush(); nm=$0; sub(/.*name /,"",nm); sub(/,.*/,"",nm) }
   { blk = blk $0 }
   /^  Sample rate:/ { r=$3 }
@@ -106,8 +168,8 @@ usb_thread_info() {
 
 # Raw track-table rows (header + rows) of every AudioFlinger output thread routed to USB; shows rate, gain (G/L/R dB) per track
 usb_tracks() {
-  dump_af | awkc '
-  function flush() { if (blk ~ /AUDIO_DEVICE_OUT_USB/ && rows != "") print "[" nm "]\n" rows; blk=""; rows=""; intab=0 }
+  dump_af | awkc -v re="$(out_re)" '
+  function flush() { if (blk ~ re && rows != "") print "[" nm "]\n" rows; blk=""; rows=""; intab=0 }
   /^Output thread/ { flush(); nm=$0; sub(/.*name /,"",nm); sub(/,.*/,"",nm) }
   { blk = blk $0 }
   /Type +Id +Active/ { intab=1; hdr=$0; sub(/^ +/,"",hdr); rows = rows "  " substr(hdr,1,200) "\n"; next }
@@ -119,13 +181,13 @@ usb_tracks() {
 # ================= v0.7: single-dump probe, status line, faster switching =================
 # One dumpsys -> one line: thr= mrate= mfmt= active= trate= tfmt= tgain= tcount=   (best USB thread: active track > not in standby > 32-bit)
 af_probe() {
-  dump_af | awkc '
+  dump_af | awkc -v re="$(out_re)" '
   function flush(   sc) {
     if (inusb) {
       sc = (nact > 0) * 100 + (stby == "no") * 10 + (mf ~ /32/)
-      if (sc > best) { best = sc; out = "thr=" nm " mrate=" mr " mfmt=" mf " busy=" (stby == "no" ? 1 : 0) " active=" (nact > 0 ? 1 : 0) " trate=" trt " tfmt=" tft " tgain=" tg " tpvol=" tpv " tcount=" nact }
+      if (sc > best) { best = sc; out = "thr=" nm " dev=" (jk ? "jack" : "usb") " mrate=" mr " mfmt=" mf " busy=" (stby == "no" ? 1 : 0) " active=" (nact > 0 ? 1 : 0) " trate=" trt " tfmt=" tft " tgain=" tg " tpvol=" tpv " tcount=" nact }
     }
-    inusb = 0; nm = ""; mr = ""; mf = ""; stby = ""; nact = 0; trt = "-"; tft = "-"; tg = "-"; tpv = "-"; intab = 0
+    inusb = 0; jk = 0; nm = ""; mr = ""; mf = ""; stby = ""; nact = 0; trt = "-"; tft = "-"; tg = "-"; tpv = "-"; intab = 0
   }
   BEGIN { best = -1; out = "none"; trt = "-"; tft = "-"; tg = "-"; tpv = "-"
           split("8000 11025 12000 16000 22050 24000 32000 44100 48000 88200 96000 176400 192000 352800 384000", a, " "); for (i in a) known[a[i]] = 1 }
@@ -134,7 +196,7 @@ af_probe() {
   /^  Standby:/ && stby == "" { stby = $2 }
   /^  Sample rate:/ { mr = $3 }
   /^  HAL format:/ { mf = $4; gsub(/[()]/, "", mf) }
-  /Output devices/ && /USB/ { inusb = 1 }
+  /Output devices/ && $0 ~ re { inusb = 1; if ($0 ~ /WIRED_HEAD/) jk = 1 }
   expect && /Active/ { expect = 0; intab = 1; next }
   intab && NF == 0 { intab = 0; next }
   intab && inusb {
@@ -153,13 +215,13 @@ af_probe() {
   END { flush(); print out }'
 }
 
-load_probe() { thr=; mrate=; mfmt=; busy=0; active=0; trate=-; tfmt=-; tgain=-; tpvol=-; tcount=0
+load_probe() { thr=; dev=; mrate=; mfmt=; busy=0; active=0; trate=-; tfmt=-; tgain=-; tpvol=-; tcount=0
   for kv in $(af_probe); do
     case "$kv" in
       *=*) _v=${kv#*=}
            # only plain tokens are assigned: the values come from dumpsys text, never run it as shell
            case "$_v" in *[!A-Za-z0-9._+-]*) continue ;; esac
-           case "${kv%%=*}" in thr|mrate|mfmt|busy|active|trate|tfmt|tgain|tpvol|tcount) eval "${kv%%=*}='$_v'" ;; esac ;;
+           case "${kv%%=*}" in thr|dev|mrate|mfmt|busy|active|trate|tfmt|tgain|tpvol|tcount) eval "${kv%%=*}='$_v'" ;; esac ;;
     esac
   done; }
 
@@ -183,7 +245,8 @@ kbps() { echo $(( $1 * $2 * 2 / 1000 )); }
 
 # Human status line from the current probe (call load_probe first)
 status_line() {
-  [ "$thr" = "" ] && { echo "No USB output thread (DAC not routed/connected)"; return; }
+  [ "$BP_KIND" = other ] && { echo "Speaker/other output | mode $(sr_flags) | nothing to follow"; return; }
+  [ "$thr" = "" ] && { if jack_on; then echo "No USB or jack output thread (nothing routed)"; else echo "No USB output thread (DAC not routed/connected)"; fi; return; }
   mb=$(bits_num "$mfmt")
   m="Mixer $(khz "$mrate") / ${mb}-bit container ($(kbps "$mrate" "$mb") kbps)"
   if [ "$active" != 1 ]; then
@@ -194,7 +257,8 @@ status_line() {
   tb=$(bits_num "$tfmt"); tl=$(bits_label "$tfmt"); [ "$tfmt" = - ] && { tb=0; tl="?"; }
   s="Source $(khz "$trate") / $tl ($([ "$tb" -gt 0 ] && kbps "$trate" "$tb" || echo ?) kbps)"
   v="rate-matched"; [ "$trate" != "$mrate" ] && v="RESAMPLED $(khz "$trate")->$(khz "$mrate")"
-  gn="gain ${tgain} dB"; case "$tgain" in 0|0.0|0.00|-) ;; *) v="$v, VOLUME ${tgain} dB: set media volume to MAX" ;; esac
+  # below-max volume is applied digitally by the mixer. On a USB DAC the advice is to use max; on the 3.5 mm jack nobody should listen at max
+  gn="gain ${tgain} dB"; case "$tgain" in 0|0.0|0.00|-) ;; *) if [ "$dev" = jack ]; then v="$v, volume ${tgain} dB (normal on the jack: keep it at a comfortable level)"; else v="$v, VOLUME ${tgain} dB: set media volume to MAX"; fi ;; esac
   case "$tfmt" in *5|*FLOAT*) v="$v, float source" ;; esac
   echo "$m | $s | $gn | $v"
 }
@@ -233,7 +297,15 @@ apply_rate() {
   echo "$1" > "$BP_STATE/rate"
 }
 
-now_ms() { t=$(date +%s%N 2>/dev/null); case "$t" in *N*|"") echo $(( $(date +%s) * 1000 )) ;; *) echo $(( t / 1000000 )) ;; esac; }
+# Milliseconds from a clock that never steps: /proc/uptime. The wall clock jumps by a few seconds after an audio server restart on some phones,
+# which gave negative "restart" times in the follow log.
+now_ms() {
+  if read -r _up _ < /proc/uptime 2>/dev/null && [ -n "$_up" ]; then
+    _f=${_up#*.}; case "$_f" in 0?) _f=${_f#0} ;; esac
+    echo $(( ${_up%.*} * 1000 + ${_f:-0} * 10 )); return
+  fi
+  t=$(date +%s%N 2>/dev/null); case "$t" in *N*|"") echo $(( $(date +%s) * 1000 )) ;; *) echo $(( t / 1000000 )) ;; esac
+}
 nap() { sleep "$1" 2>/dev/null || sleep 1; }
 
 # true if the file already carries our edits (single-line hifi_playback with a profile)

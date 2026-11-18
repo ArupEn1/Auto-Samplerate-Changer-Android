@@ -35,6 +35,8 @@ check "384k case: one active"  "$tcount" 1
 s=$(status_line)
 has "384k case: flags resampling" "$s" "RESAMPLED"
 has "384k case: flags volume"     "$s" "VOLUME -21 dB"
+has "384k case: USB advice is to use max volume" "$s" "set media volume to MAX"
+check "384k case: device is usb" "$dev" usb
 has "384k case: float source"     "$s" "float source"
 TRACK_DUMP_FILE=$FX/flinger_playing_matched.txt; load_probe; s=$(status_line)
 has   "matched case: rate-matched" "$s" "rate-matched"
@@ -43,9 +45,117 @@ hasnt "matched case: no volume flag"   "$s" "VOLUME"
 has   "matched case: 16-bit source"    "$s" "16-bit"
 TRACK_DUMP_FILE=$FX/flinger_idle.txt; load_probe; has "idle case" "$(status_line)" "idle"
 
+# experimental jack following (real dump from an LG V30+ playing a 44.1 kHz track on the 3.5 mm jack, bypass-offload)
+TRACK_DUMP_FILE=$FX/flinger_jack_44k.txt; export TRACK_DUMP_FILE
+BP_STATE=$T/jackstate; mkdir -p "$BP_STATE"
+load_probe; check "jack flag off: jack thread ignored" "$thr" ""
+has "jack flag off: status says no USB output" "$(status_line)" "No USB output"
+touch "$BP_STATE/jack"
+load_probe
+check "jack: thread"      "$thr"    AudioOut_15
+check "jack: mixer rate"  "$mrate"  44100
+check "jack: source rate" "$trate"  44100
+check "jack: one active"  "$tcount" 1
+has "jack: rate-matched"  "$(status_line)" "rate-matched"
+check "jack: device is jack" "$dev" jack
+hasnt "jack: never tells the user to use max volume" "$(status_line)" "MAX"
+has "jack: reports the volume gently" "$(status_line)" "keep it at a comfortable level"
+has "jack: track table lists the headset thread" "$(usb_tracks)" "[AudioOut_15]"
+check "jack pick 96000" "$(jack_pick_rate 96000)" 96000
+check "jack pick 384000 -> 192000 (extended off)" "$(jack_pick_rate 384000)" 192000
+check "extended off: rate cap" "$(rate_cap)" 192000
+touch "$BP_STATE/extended"
+check "extended on: rate cap" "$(rate_cap)" 384000
+check "extended on: jack pick 384000 stays" "$(jack_pick_rate 384000)" 384000
+check "extended on: jack pick 352800 stays" "$(jack_pick_rate 352800)" 352800
+check "extended on: jack pick 192000 stays" "$(jack_pick_rate 192000)" 192000
+check "extended on: jack pick 705600 -> 352800" "$(jack_pick_rate 705600)" 352800
+rm -f "$BP_STATE/extended"
+check "jack pick 352800 -> 176400" "$(jack_pick_rate 352800)" 176400
+check "jack pick unknown rate -> none" "$(jack_pick_rate 22050)" ""
+echo "--bypass-offload" > "$BP_STATE/sr_flags"; jack_mode_ok && ok "jack_mode_ok: bypass-offload" || bad "jack_mode_ok bypass-offload"
+for m in bypass-offload-safer offload-safer safe safest safest-auto; do echo "--$m" > "$BP_STATE/sr_flags"; jack_mode_ok && bad "jack_mode_ok should refuse $m" || ok "jack_mode_ok refuses $m"; done
+
+# per-output profiles (policy dumps from the V30+; the unplugged one is the plugged dump without the Wired Headset entry)
+export BP_ASOUND=$T/asound; mkdir -p "$BP_ASOUND/card0"
+POLICY_DUMP_FILE=$FX/policy_jack_plugged.txt; export POLICY_DUMP_FILE
+check "out_kind: headset plugged -> jack" "$(out_kind)" jack
+POLICY_DUMP_FILE=$FX/policy_jack_unplugged.txt
+check "out_kind: unplugged -> other (the input-list headset mic does not count)" "$(out_kind)" other
+sed 's/AUDIO_DEVICE_OUT_WIRED_HEADSET/AUDIO_DEVICE_OUT_WIRED_HEADPHONE/' $FX/policy_jack_plugged.txt > $T/headphone.txt
+POLICY_DUMP_FILE=$T/headphone.txt
+check "out_kind: headphones without mic -> jack" "$(out_kind)" jack
+POLICY_DUMP_FILE=$T/empty.txt; : > "$T/empty.txt"
+check "out_kind: unreadable dump -> nothing (not 'unplugged')" "$(out_kind)" ""
+POLICY_DUMP_FILE=$FX/policy_jack_plugged.txt
+mkdir -p "$BP_ASOUND/card1"; echo "1234:5678" > "$BP_ASOUND/card1/usbid"
+check "out_kind: USB card beats the jack" "$(out_kind)" usb
+rm -rf "$BP_ASOUND/card1"
+unset BP_ASOUND POLICY_DUMP_FILE
+
+PS=$T/profstate; mkdir -p "$PS"; BP_STATE=$PS
+profiles_on && bad "profiles off by default" || ok "profiles off by default"
+check "no profile set -> nothing pending" "$(prof_pending usb)" ""
+prof_set jack bypass-offload 32 && ok "prof_set accepts mode + bits" || bad "prof_set jack"
+check "prof_get returns mode:bits" "$(prof_get jack)" "bypass-offload:32"
+prof_set other safest && ok "prof_set without bits uses the current bit depth" || bad "prof_set other"
+check "bits default to the saved bit depth" "$(prof_get other)" "safest:32"
+echo 24 > "$BP_STATE/sr_bits"; prof_set usb bypass-offload-safer; check "bits default follows sr_bits" "$(prof_get usb)" "bypass-offload-safer:24"
+prof_set jack nonsense 32 && bad "prof_set must reject an unknown mode" || ok "prof_set rejects an unknown mode"
+prof_set jack bypass-offload 8 && bad "prof_set must reject bad bits" || ok "prof_set rejects bad bits"
+prof_set speaker safest 32 && bad "prof_set must reject an unknown output" || ok "prof_set rejects an unknown output"
+check "a rejected set leaves the old profile alone" "$(prof_get jack)" "bypass-offload:32"
+echo "--bypass-offload-safer" > "$BP_STATE/sr_flags"; echo 32 > "$BP_STATE/sr_bits"
+check "jack profile differs from the mode in effect -> pending" "$(prof_pending jack)" "bypass-offload:32"
+echo "--bypass-offload" > "$BP_STATE/sr_flags"
+check "profile already in effect -> nothing pending" "$(prof_pending jack)" ""
+check "other profile pending when jack mode is in effect" "$(prof_pending other)" "safest:32"
+check "unknown output has no profile" "$(prof_get ../x)" ""
+rm -f "$BP_STATE/prof_usb" "$BP_STATE/prof_other"
+jack_on && bad "jack_on false: no flag, profiles off" || ok "jack_on false without flag or profiles"
+touch "$BP_STATE/profiles"
+jack_on && ok "jack_on true: profiles on and a jack profile exists" || bad "jack_on with jack profile"
+rm -f "$BP_STATE/prof_jack"
+jack_on && bad "jack_on false: profiles on but no jack profile" || ok "jack_on false: profiles on, no jack profile"
+BP_KIND=usb; check "BP_KIND=usb narrows the output regex" "$(out_re)" "AUDIO_DEVICE_OUT_USB"
+BP_KIND=jack; check "BP_KIND=jack narrows the output regex" "$(out_re)" "AUDIO_DEVICE_OUT_WIRED_HEAD"
+BP_KIND=other; check "other output: status line says nothing to follow" "$(status_line)" "Speaker/other output | mode --bypass-offload | nothing to follow"
+unset BP_KIND
+TRACK_DUMP_FILE=$FX/flinger_jack_44k.txt; BP_KIND=usb; load_probe; check "BP_KIND=usb ignores the jack thread" "$thr" ""
+BP_KIND=jack; load_probe; check "BP_KIND=jack finds the jack thread" "$thr" AudioOut_15
+unset BP_KIND
+# timing clock: numeric and never goes backwards
+a=$(now_ms); sleep 0.2; b=$(now_ms)
+case "$a$b" in *[!0-9]*|"") bad "now_ms is numeric" ;; *) ok "now_ms is numeric" ;; esac
+[ "$b" -gt "$a" ] && [ $((b - a)) -lt 2000 ] && ok "now_ms moves forward by about the time slept" || bad "now_ms forward ($a -> $b)"
+# the 96 kHz lock: asked for more than 96 kHz, mixer stuck at or under 96 kHz
+lock_signature 192000 96000 && ok "lock: 192000 asked, mixer at 96000" || bad "lock 192000/96000"
+lock_signature 384000 48000 && ok "lock: 384000 asked, mixer at 48000" || bad "lock 384000/48000"
+lock_signature 192000 192000 && bad "no lock when the mixer reached the rate" || ok "no lock when the mixer reached the rate"
+lock_signature 96000 96000 && bad "no lock when only 96000 was asked" || ok "no lock when only 96000 was asked"
+lock_signature 192000 "" && bad "no lock without a mixer reading" || ok "no lock without a mixer reading"
+lock_signature 192000 x && bad "no lock on a non-numeric reading" || ok "no lock on a non-numeric reading"
+# unlocker modules (zyhk: usb-samplerate-unlocker / audio-samplerate-changer / hifi-maximizer-mod)
+BP_MODROOT=$T/modroot; mkdir -p "$BP_MODROOT"; export BP_MODROOT
+unlocker_present && bad "no unlocker module -> not present" || ok "no unlocker module -> not present"
+for um in usb-samplerate-unlocker audio-samplerate-changer hifi-maximizer-mod; do
+  mkdir "$BP_MODROOT/$um"; unlocker_present && ok "unlocker_present sees $um" || bad "unlocker_present misses $um"; rmdir "$BP_MODROOT/$um"
+done
+mkdir "$BP_MODROOT/some-other-module"; unlocker_present && bad "an unrelated module is not an unlocker" || ok "an unrelated module is not an unlocker"
+unset BP_MODROOT
+unset BP_STATE; TRACK_DUMP_FILE=$FX/flinger_idle.txt
+
 check "pick 44100" "$(pick_rate 44100 $FX/stream0_dac.txt)" 44100
 check "pick 96000" "$(pick_rate 96000 $FX/stream0_dac.txt)" 96000
 check "88200 unsupported -> none" "$(pick_rate 88200 $FX/stream0_dac.txt)" ""
+# the extended-rates switch is for the jack only: a USB DAC always uses the rates it lists (this fixture lists 192000 and 384000)
+EX=$T/exstate; mkdir -p "$EX"; _bs=$BP_STATE; BP_STATE=$EX
+check "USB, switch off: a 384000 track gets 384000" "$(pick_rate 384000 $FX/stream0_dac.txt)" 384000
+check "USB, switch off: 192000 stays 192000" "$(pick_rate 192000 $FX/stream0_dac.txt)" 192000
+touch "$EX/extended"
+check "USB, switch on: a 384000 track gets 384000" "$(pick_rate 384000 $FX/stream0_dac.txt)" 384000
+check "USB: 352800 track the DAC lacks -> none" "$(pick_rate 352800 $FX/stream0_dac.txt)" ""
+BP_STATE=$_bs
 
 POLICY_DUMP_FILE=$FX/policy_effects.txt; export POLICY_DUMP_FILE
 check "only enabled effects reported" "$(active_effects)" "Volume listener for Music"
@@ -134,7 +244,7 @@ unset BP_MODDIR BP_STATE
 WU=$HERE/../module/webroot/index.html
 [ -f "$WU" ] && ok "webui page present" || bad "webui page missing"
 grep -q 'ksu.exec' "$WU" && ok "webui uses the ksu.exec bridge" || bad "webui bridge missing"
-for c in state auto boot drc pause fast mode bits reset; do
+for c in state auto boot drc pause fast jack extended profiles profile mode bits reset; do
   grep -q "bprate" "$WU" && grep -qE "^ *\"?$c\"?\)|^ *([a-z0-9|-]+\|)?$c(\|[a-z0-9-]+)*\)" "$HERE/../module/system/bin/bprate" && ok "bprate handles '$c' (used by webui)" || bad "bprate lacks '$c'"
 done
 

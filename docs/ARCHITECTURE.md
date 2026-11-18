@@ -79,6 +79,21 @@ loop while $STATE/auto exists:
   safety: >6 switches in 120 s -> disable auto-follow
 ```
 
+### Per-output profiles (optional, `$STATE/profiles`)
+
+```
+every 1.5 s, before the rate logic:
+  kind = out_kind          # usb (USB card in /proc/asound) | jack (wired headset/headphone in the policy's
+                           # "Available output devices") | other; empty if the policy dump could not be read
+  same kind twice in a row -> confirmed; log "output: <kind>"
+  p = prof_pending(kind)   # "mode:bits" from $STATE/prof_<kind> if it differs from sr_flags/sr_bits
+  p set -> pause the player if a track is active, write sr_flags/sr_bits, apply_rate(saved rate),
+           wait for audioserver, resume; on failure restore the old mode and do not retry the same profile
+  kind = other -> nothing to follow, status line says so
+  safety: >4 switches in 120 s, or two backend failures -> remove $STATE/profiles
+BP_KIND narrows the AudioFlinger thread match (out_re) to the confirmed output
+```
+
 ### Boot guard
 
 `post-fs-data.sh` increments `.boot_fail`; `service.sh` deletes it ~10 s after `sys.boot_completed` if `audioserver` runs and AudioFlinger lists output threads. A counter of 2 at boot start disables the module.
@@ -88,7 +103,8 @@ loop while $STATE/auto exists:
 | Path | Meaning |
 |---|---|
 | `/data/adb/usb_dac_bitperfect/rate` | configured mixer rate (Hz) |
-| `.../auto`, `.../keep_deep_buffer`, `.../usb_offload_off` | feature flags (file exists = on) |
+| `.../auto`, `.../jack`, `.../profiles`, `.../keep_deep_buffer`, `.../usb_offload_off` | feature flags (file exists = on) |
+| `.../prof_usb`, `.../prof_jack`, `.../prof_other` | per-output profile as `mode:bits` (file absent = keep the current mode) |
 | `.../status` | last status line written by `bpfollow` |
 | `.../follow.log`, `.../follow.pid`, `.../boot.log` | daemon log, pid, boot self-check |
 | `<module>/orig/`, `orig.list`, `orig.fp` | pristine policy copies, `real-path|copy` list, build fingerprint |

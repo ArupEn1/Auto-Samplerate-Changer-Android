@@ -1,5 +1,6 @@
 #!/system/bin/sh
-# Daemon: follows the active track's sample rate on the USB output. Toggle: bprate auto on|off
+# Daemon: follows the active track's sample rate on the USB output (and the 3.5 mm jack, experimental). Toggle: bprate auto on|off
+# With bprate profiles on it also switches mode/bit depth when the output changes (USB DAC / jack / other).
 MODDIR=/data/adb/modules/usb_dac_bitperfect
 STATE=/data/adb/usb_dac_bitperfect
 . "$MODDIR/common.sh"
@@ -8,11 +9,64 @@ if [ -f "$PIDF" ] && kill -0 "$(cat $PIDF)" 2>/dev/null && [ "$(cat $PIDF)" != "
 echo $$ > "$PIDF"
 log() { echo "$(date '+%F %T') $*" >> "$LOG"; [ "$(wc -c < "$LOG")" -gt 100000 ] && { tail -n 200 "$LOG" > "$LOG.t"; mv "$LOG.t" "$LOG"; }; }
 last=""; n=0; sw=0; win=$(date +%s); t0=0; prev=""
-fail=0
-log "bpfollow v0.6.14 started"
+fail=0; jackwarn=0
+kind=""; cand=""; cand_n=0; pnext=0; pwatch=0; praw="-"; psw=0; pwin=$(date +%s); pfail=0; pbad=""
+log "bpfollow v0.7.0 started"
+
+# Per-output profiles: when the output (USB DAC / jack / other) is stable for two checks and its profile differs from the mode in effect, apply it.
+profile_apply() {
+  pr_k=$1; pr_p=$2; pr_m="--${pr_p%%:*}"; pr_b=${pr_p##*:}
+  pr_now=$(date +%s); [ $((pr_now - pwin)) -gt 120 ] && { pwin=$pr_now; psw=0; }
+  psw=$((psw+1))
+  if [ "$psw" -gt 4 ]; then log "profiles: the output or its profile changed more than 4 times in 2 minutes (loose plug?). Profiles disabled; run: bprate profiles on"; rm -f "$STATE/profiles"; return 0; fi
+  pr_om=$(sr_flags); pr_ob=$(sr_bits); pr_r=$(cat "$STATE/rate" 2>/dev/null); pr_r=${pr_r:-44100}
+  load_probe; pr_paused=0
+  if [ "$active" = 1 ] && [ -f "$STATE/pause" ]; then media_cmd pause && pr_paused=1; nap 0.3; fi
+  echo "$pr_m" > "$STATE/sr_flags"; echo "$pr_b" > "$STATE/sr_bits"
+  pr_t1=$(now_ms); pr_out=$(apply_rate "$pr_r" 2>&1); pr_rc=$?
+  if [ "$pr_rc" -ne 0 ]; then
+    echo "$pr_om" > "$STATE/sr_flags"; echo "$pr_ob" > "$STATE/sr_bits"; pbad="$pr_k:$pr_p"; pfail=$((pfail+1))
+    log "profile $pr_k ($pr_m $pr_b) FAILED (rc=$pr_rc): $(echo "$pr_out" | tr '\n' ' ' | cut -c1-300)"
+    [ "$pr_paused" = 1 ] && media_cmd play
+    if echo "$pr_out" | grep -q "AIDL only" || [ "$pfail" -ge 2 ]; then log "profiles disabled after the backend failed; run: bprate profiles on"; rm -f "$STATE/profiles"; fi
+    return 0
+  fi
+  pfail=0; pbad=""
+  pr_q=0; nap 0.5
+  while [ $pr_q -lt 30 ]; do
+    pidof audioserver >/dev/null 2>&1 && dumpsys media.audio_flinger 2>/dev/null | grep -q "^Output thread" && break
+    nap 0.2; pr_q=$((pr_q+1))
+  done
+  log "profile $pr_k: $pr_om $pr_ob -> $pr_m $pr_b, restart $(( $(now_ms) - pr_t1 )) ms"
+  if [ "$pr_paused" = 1 ]; then nap "$(pause_delay)"; media_cmd play; log "playback resumed after $(pause_delay) s"; fi
+  last=""; n=0; prev=""
+}
+profile_tick() {
+  # whole seconds only: the millisecond clock (now_ms) jumps by a few seconds after an audio server restart on some phones
+  pr_tn=$(date +%s); [ "$pr_tn" -ge "$pnext" ] || [ $((pnext - pr_tn)) -gt 5 ] || return 0
+  pnext=$((pr_tn + 2))
+  [ "$pwatch" = 1 ] || { pwatch=1; log "profiles: on, checking the output every 2 s (usb=$(prof_get usb) jack=$(prof_get jack) other=$(prof_get other))"; }
+  pr_k=$(out_kind)
+  if [ "$pr_k" != "$praw" ]; then praw=$pr_k; log "profiles: output reads as '${pr_k:-unreadable}'"; fi
+  [ -n "$pr_k" ] || return 0
+  if [ "$pr_k" = "$cand" ]; then cand_n=$((cand_n+1)); else cand=$pr_k; cand_n=1; fi
+  [ "$cand_n" -ge 2 ] || return 0
+  if [ "$pr_k" != "$kind" ]; then log "output: $pr_k"; kind=$pr_k; prev=""; last=""; n=0; fi
+  pr_p=$(prof_pending "$pr_k"); [ -n "$pr_p" ] || return 0
+  [ "$pbad" = "$pr_k:$pr_p" ] && return 0
+  profile_apply "$pr_k" "$pr_p"
+}
+
 while [ -f "$STATE/auto" ]; do
+  BP_KIND=""
+  if profiles_on; then profile_tick; BP_KIND=$kind; else kind=""; cand=""; cand_n=0; pwatch=0; praw="-"; fi
+  if [ "$kind" = other ]; then
+    # speaker/other output: its profile is applied above, there is no track rate to follow
+    line=$(status_line); [ "$line" != "$prev" ] && { prev=$line; echo "$line" > "$STATE/status"; }
+    last=""; n=0; nap 1; continue
+  fi
   card=$(usb_card)
-  if [ -z "$card" ]; then last=""; n=0; nap 1.5; continue; fi
+  if [ -z "$card" ] && ! jack_on; then last=""; n=0; nap 1.5; continue; fi
   load_probe
   line=$(status_line)
   if [ "$line" != "$prev" ]; then
@@ -21,7 +75,13 @@ while [ -f "$STATE/auto" ]; do
     [ -d /data/user/0/com.bpdac ] && ( am broadcast -n com.bpdac/.StatusReceiver -a com.bpdac.STATUS --es line "$line" >/dev/null 2>&1 & )
   fi
   if [ "$active" != 1 ] || [ "$trate" = multi ] || [ "$trate" = - ]; then last=""; n=0; nap 1; continue; fi
-  want=$(pick_rate "$trate" "$card/stream0"); cur=$(cat "$STATE/rate" 2>/dev/null)
+  if [ -n "$card" ]; then want=$(pick_rate "$trate" "$card/stream0")
+  else
+    # jack only (experimental): needs a mode that changes the internal outputs, else switching would only restart the audio server for nothing
+    if ! jack_mode_ok; then [ "$jackwarn" = 1 ] || log "jack: mode $(sr_flags) keeps the jack at 48 kHz; use bypass-offload for the jack. Not switching."; jackwarn=1; last=""; n=0; nap 5; continue; fi
+    want=$(jack_pick_rate "$trate")
+  fi
+  cur=$(cat "$STATE/rate" 2>/dev/null)
   need=2; idle=0.4; wait=0.25
   [ -f "$STATE/fast" ] && { need=1; idle=0.12; wait=0.05; }   # fast: no confirmation poll, tighter polling (more CPU, slightly more risk of a switch on a short sound)
   if [ -z "$want" ] || [ "$want" = "$cur" ]; then last=""; n=0; nap $idle; continue; fi
@@ -61,6 +121,14 @@ while [ -f "$STATE/auto" ]; do
   t2=$(now_ms)
   log "track $(khz "$trate"): mixer $cur -> $want | detect $((t1-t0)) ms, restart $((t2-t1)) ms"
   if [ "$paused" = 1 ]; then nap "$(pause_delay)"; media_cmd play; log "playback resumed after $(pause_delay) s"; fi
+  # USB only: a rate above 96 kHz that the mixer did not reach is the driver's 96 kHz lock; the WebUI then shows a hint about the unlock module
+  if [ -n "$card" ] && [ "$want" -gt 96000 ]; then
+    nap 1; load_probe
+    if lock_signature "$want" "$mrate"; then
+      echo "$want $mrate" > "$STATE/lock_seen"
+      log "usb: asked for $want Hz but the mixer runs at $mrate Hz. This looks like the 96 kHz USB driver lock; a phone with it needs an unlock module (usb-samplerate-unlocker)"
+    elif [ -n "$mrate" ] && [ "$mrate" -ge "$want" ] 2>/dev/null; then rm -f "$STATE/lock_seen"; fi
+  fi
   last=""; n=0; prev=""; nap 1
 done
 rm -f "$PIDF"

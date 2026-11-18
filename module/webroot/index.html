@@ -41,6 +41,7 @@ button,select{font:inherit;color:var(--fg)}
 .btn.danger{border-color:color-mix(in srgb,var(--bad) 50%,transparent);color:var(--bad)}
 .btn.full{width:100%;margin-top:8px}
 select{background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:9px 10px;max-width:58%}
+.pair{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:62%}.pair select{max-width:none;padding:8px 8px}
 .sw{position:relative;width:48px;height:28px;flex:none}
 .sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
 .sw i{position:absolute;inset:0;border-radius:999px;background:var(--card2);border:1px solid var(--bd);transition:.15s}
@@ -162,6 +163,10 @@ h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
     <p><b>Auto-follow is off.</b> Until you turn it on, the module will not change the sample rate by itself, so it will look like nothing works.</p>
     <button class="btn full sel" id="nudgeBtn">Turn on Auto-follow</button>
   </div>
+  <div class="card nudge" id="unlockNote" hidden><h2>USB driver limit</h2>
+    <p>This phone looks locked at <b>96 kHz</b> on USB: the last request above 96 kHz did not get through, and the mixer stayed at 96 kHz or lower. An unlock module such as <b>usb-samplerate-unlocker</b> by zyhk (search for it on GitHub) removes the lock. If its installer asks for the <b>Compatible Magisk-mirroring</b> module (APatch, recent Magisk), install that first and reboot. The 3.5 mm jack is not affected.</p>
+    <button class="btn full" id="unlockHide">Got it, hide this</button>
+  </div>
   <div class="card"><h2>Live status</h2>
     <div class="out"><pre id="statusOut">…</pre></div>
     <div class="row"><div class="t"><b>Auto refresh</b><span>every 2 seconds while this tab is open</span></div>
@@ -188,10 +193,19 @@ h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
     <div class="row"><div class="t"><b>Auto-follow track rate</b><span>switches the mixer to each track's rate</span></div><label class="sw"><input type="checkbox" data-key="auto"><i></i></label></div>
     <div class="row"><div class="t"><b>Apply at boot</b><span>re-applies the saved mode and rate after every reboot</span></div><label class="sw"><input type="checkbox" data-key="boot_apply"><i></i></label></div>
   </div>
+  <div class="card"><h2>Per-output profiles (experimental)</h2>
+    <div class="row"><div class="t"><b>Switch mode by output</b><span>when the output changes (USB DAC, 3.5 mm jack, speaker or other), the module switches to that output's mode. Needs Auto-follow on. Outputs left on "keep current mode" are not touched</span></div><label class="sw"><input type="checkbox" data-key="profiles"><i></i></label></div>
+    <div class="row"><div class="t"><b>USB DAC</b><span>e.g. bypass-offload-safer</span></div><div class="pair"><select data-prof="usb" aria-label="USB DAC mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="usb" aria-label="USB DAC bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
+    <div class="row"><div class="t"><b>3.5 mm jack</b><span>e.g. bypass-offload (the jack follows the track rate)</span></div><div class="pair"><select data-prof="jack" aria-label="3.5 mm jack mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="jack" aria-label="3.5 mm jack bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
+    <div class="row"><div class="t"><b>Speaker / other</b><span>e.g. safest (stays at 48 kHz)</span></div><div class="pair"><select data-prof="other" aria-label="Speaker / other mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="other" aria-label="Speaker / other bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
+    <p class="hint">While profiles are on, the Mode on the Audio tab shows the mode in effect right now. Change it per output here, or the profile will switch it back.</p>
+  </div>
   <div class="card"><h2>Rate-switch behaviour</h2>
     <div class="row"><div class="t"><b>Pause during switch</b><span>pauses the player, switches, then resumes</span></div><label class="sw"><input type="checkbox" data-key="pause"><i></i></label></div>
     <div class="row" style="display:block"><div class="t"><b>Resume delay: <span id="delayVal" style="display:inline;color:var(--acc)">1.5</span> s</b><span>how long to wait after the switch before playing again</span></div>
       <input type="range" id="delay" min="0.5" max="4" step="0.1" value="1.5"></div>
+    <div class="row"><div class="t"><b>Follow 3.5 mm jack (experimental)</b><span>also follow the headphone jack when no USB DAC is used. Needs a mode that changes the jack rate, such as bypass-offload. Tested on one phone</span></div><label class="sw"><input type="checkbox" data-key="jack"><i></i></label></div>
+    <div class="row"><div class="t"><b>Unlock extended sample rates (jack)</b><span>lets the 3.5 mm jack be asked for 352.8 and 384 kHz, and shows those two buttons on the Rate tab. The jack lists no rates, so it is a trial; it worked on an LG V30+. USB DACs always use the rates they list</span></div><label class="sw"><input type="checkbox" data-key="extended"><i></i></label></div>
     <div class="row"><div class="t"><b>Fast detection</b><span>pauses sooner after a track starts; uses a bit more CPU</span></div><label class="sw"><input type="checkbox" data-key="fast"><i></i></label></div>
   </div>
 </section>
@@ -278,7 +292,7 @@ h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
       <li><b>Check the badge</b> at the top of the Status tab. <b>Rate-matched</b> (green) means the music is playing at its own sample rate.</li>
     </ol>
     <button class="btn full sel" id="helpAuto">Go to the Auto tab</button>
-    <p>For bit-perfect playback, use media volume at maximum and turn off EQ and effects in your music app.</p>
+    <p>For bit-perfect playback on a USB DAC, use media volume at maximum and turn off EQ and effects in your music app. On the 3.5 mm jack keep the volume at a comfortable level instead.</p>
   </div>
   <div class="card help"><h2>If something is wrong</h2>
     <ul>
@@ -314,15 +328,17 @@ h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
 const MOD = "/data/adb/modules/usb_dac_bitperfect";
 const BIN = MOD + "/system/bin/";
 const STATE = "/data/adb/usb_dac_bitperfect";
-const RATES = [[44100,"44.1"],[48000,"48"],[88200,"88.2"],[96000,"96"],[176400,"176.4"],[192000,"192"]];
+const RATES = [[44100,"44.1"],[48000,"48"],[88200,"88.2"],[96000,"96"],[176400,"176.4"],[192000,"192"],[352800,"352.8",1],[384000,"384",1]];
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
 /* ---- command bridge: KernelSU/APatch WebUI API, or a simulated one for previews ---- */
 let demo = !(window.ksu && typeof window.ksu.exec === "function");
-const mock = { rate: 96000, bits: "32", mode: "bypass-offload-safer", boot_apply: 1, auto: 0, drc: 0, pause: 1, fast: 0, pause_delay: "1.5" };
+const mock = { rate: 96000, bits: "32", mode: "bypass-offload-safer", boot_apply: 1, auto: 0, drc: 0, pause: 1, fast: 0, jack: 0, extended: 0, unlocker: 0, lockseen: 1, profiles: 0, prof_usb: "", prof_jack: "", prof_other: "", pause_delay: "1.5" };
 function mockExec(cmd) {
-  if (/module\.prop/.test(cmd)) return "version=v0.6.14 (preview)";
+  if (/module\.prop/.test(cmd)) return "version=v0.7.0 (preview)";
+  const pm = cmd.match(/bprate profile (usb|jack|other) (\S+)(?: (\S+))?/);
+  if (pm) { mock["prof_" + pm[1]] = pm[2] === "clear" ? "" : pm[2] + ":" + (pm[3] || mock.bits); return "Profile '" + pm[1] + "' = " + mock["prof_" + pm[1]]; }
   const m = cmd.match(/bprate (\S+)(?: (\S+))?/);
   if (/bprate state/.test(cmd)) return Object.entries(mock).map(([k, v]) => k + "=" + v).join("\n");
   if (/bpreport/.test(cmd)) return "Saved /data/local/tmp/bitperfect-report.txt and /sdcard/Download/bitperfect-report.txt";
@@ -330,7 +346,7 @@ function mockExec(cmd) {
   if (m) {
     const [, a, b] = m;
     if (/^\d+$/.test(a)) { mock.rate = +a; return "Applied " + a + " Hz"; }
-    if (["auto", "boot", "drc", "pause", "fast"].includes(a)) {
+    if (["auto", "boot", "drc", "pause", "fast", "jack", "extended", "profiles"].includes(a)) {
       const key = a === "boot" ? "boot_apply" : a;
       if (a === "pause" && /^[\d.]+$/.test(b)) { mock.pause_delay = b; mock.pause = 1; } else mock[key] = b === "on" ? 1 : 0;
       return a + " " + b;
@@ -364,19 +380,27 @@ const tool = name => run("sh " + BIN + name + " 2>&1");
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 2600); }
 
 /* ---- state ---- */
-let S = {};
+let S = {}, unlockDismissed = false;
+function unlockHidden() { if (unlockDismissed) return true; try { return localStorage.getItem("asc-unlock-hide") === "1"; } catch (e) { return false; } }
 function parseState(txt) { const o = {}; txt.split("\n").forEach(l => { const i = l.indexOf("="); if (i > 0) o[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); return o; }
 function paint() {
   $$("[data-key]").forEach(el => { el.checked = S[el.dataset.key] === "1"; });
   $("#mode").value = S.mode || "bypass-offload-safer";
   $("#bits").value = S.bits || "32";
+  ["usb", "jack", "other"].forEach(o => {
+    const p = S["prof_" + o] || "", i = p.indexOf(":");
+    $("[data-prof=" + o + "]").value = i > 0 ? p.slice(0, i) : "";
+    $("[data-profbits=" + o + "]").value = i > 0 ? p.slice(i + 1) : (S.bits || "32");
+  });
   const d = parseFloat(S.pause_delay || "1.5"); $("#delay").value = d; $("#delayVal").textContent = d.toFixed(1);
-  $$("#rates .btn").forEach(b => b.classList.toggle("sel", b.dataset.rate === S.rate));
+  $$("#rates .btn").forEach(b => { b.classList.toggle("sel", b.dataset.rate === S.rate); if (b.dataset.ext) b.style.display = S.extended === "1" ? "" : "none"; });
   $("#autoNudge").hidden = S.auto === "1";
+  $("#unlockNote").hidden = !(S.unlocker === "0" && S.lockseen === "1") || unlockHidden();
   $("#stateOut").textContent = "Rate: " + S.rate + " Hz (" + S.bits + "-bit)\nMode: --" + S.mode +
     "\nAuto-follow: " + (S.auto === "1" ? "on" : "off") + " | Boot: " + (S.boot_apply === "1" ? "on" : "off") +
     "\nPause: " + (S.pause === "1" ? "on, " + S.pause_delay + " s" : "off") + " | Fast: " + (S.fast === "1" ? "on" : "off") +
-    "\nDRC: " + (S.drc === "1" ? "on" : "off");
+    "\nDRC: " + (S.drc === "1" ? "on" : "off") +
+    "\nProfiles: " + (S.profiles === "1" ? "on" : "off") + (S.profiles === "1" ? " (usb " + (S.prof_usb || "-") + ", jack " + (S.prof_jack || "-") + ", other " + (S.prof_other || "-") + ")" : "");
 }
 async function loadState() {
   const txt = await bprate("state", true);
@@ -407,8 +431,8 @@ async function loadStatus() {
 
 /* ---- wiring ---- */
 const rateBox = $("#rates");
-RATES.forEach(([hz, label]) => {
-  const b = document.createElement("button"); b.className = "btn"; b.dataset.rate = String(hz); b.innerHTML = label + "<br><small>kHz</small>";
+RATES.forEach(([hz, label, ext]) => {
+  const b = document.createElement("button"); b.className = "btn"; b.dataset.rate = String(hz); if (ext) b.dataset.ext = "1"; b.innerHTML = label + "<br><small>kHz</small>";
   b.onclick = async () => { const force = $("#force").checked ? " force" : ""; toast("Applying " + label + " kHz…"); const out = await bprate(hz + force); toast(out.split("\n")[0] || "Done"); await loadState(); loadStatus(); };
   rateBox.appendChild(b);
 });
@@ -416,6 +440,7 @@ $$("[data-key]").forEach(el => el.addEventListener("change", async () => {
   const key = el.dataset.key, cmd = key === "boot_apply" ? "boot" : key, val = el.checked ? "on" : "off";
   const out = await bprate(cmd + " " + val); toast(out.split("\n")[0] || cmd + " " + val); loadState();
 }));
+$("#unlockHide").onclick = () => { unlockDismissed = true; try { localStorage.setItem("asc-unlock-hide", "1"); } catch (e) {} $("#unlockNote").hidden = true; };
 $("#nudgeBtn").onclick = () => { const el = $("[data-key=auto]"); el.checked = true; el.dispatchEvent(new Event("change")); };
 function openHelp() { const h = $("#helpSheet"); h.hidden = false; h.classList.remove("open"); void h.offsetWidth; h.classList.add("open"); h.scrollTop = 0; document.body.style.overflow = "hidden"; }
 function closeHelp() { $("#helpSheet").hidden = true; document.body.style.overflow = ""; }
@@ -429,6 +454,12 @@ $("#delay").addEventListener("change", e => {
   clearTimeout(delayTimer);
   delayTimer = setTimeout(async () => { const out = await bprate("pause " + parseFloat(e.target.value).toFixed(1)); toast(out.split("\n")[0]); loadState(); }, 150);
 });
+async function setProfile(o) {
+  const m = $("[data-prof=" + o + "]").value, b = $("[data-profbits=" + o + "]").value;
+  const out = await bprate("profile " + o + " " + (m ? m + " " + b : "clear")); toast(out.split("\n")[0]); loadState();
+}
+$$("[data-prof]").forEach(el => el.addEventListener("change", () => setProfile(el.dataset.prof)));
+$$("[data-profbits]").forEach(el => el.addEventListener("change", () => { if ($("[data-prof=" + el.dataset.profbits + "]").value) setProfile(el.dataset.profbits); }));
 $("#mode").addEventListener("change", async e => { toast("Changing mode…"); const out = await bprate("mode " + e.target.value); toast(out.split("\n")[0]); loadState(); });
 $("#bits").addEventListener("change", async e => { toast("Changing bit depth…"); const out = await bprate("bits " + e.target.value); toast(out.split("\n")[0]); loadState(); });
 
@@ -467,7 +498,8 @@ function showTab(name) {
 }
 $$("#nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 $("#refreshBtn").onclick = () => { loadStatus(); loadState(); };
-setInterval(() => { if ($("#s-status").classList.contains("on") && $("#autoref").checked && !document.hidden) loadStatus(); }, 2000);
+let tick = 0;
+setInterval(() => { if ($("#s-status").classList.contains("on") && $("#autoref").checked && !document.hidden) { loadStatus(); if (++tick % 3 === 0) loadState(); } }, 2000);
 
 /* themes */
 const THEMES = ["auto","light","dark","retro","crt"], THEME_NAME = {auto:"Auto",light:"Day",dark:"Night",retro:"Retro",crt:"Retro night"};

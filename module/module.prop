@@ -1,6 +1,6 @@
 id=usb_dac_bitperfect
 name=Auto Samplerate Changer for Android (with Optional Bitperfect)
-version=v0.6.14
-versionCode=22
+version=v0.7.0
+versionCode=33
 author=ArupEn1
 description=Follows the playing track's sample rate on USB DACs (optional bit-perfect output). Backend: USB_SampleRate_Changer by zyhk (bundled, unmodified). Based on BitPerfect-DAC by varunpilankar. Auto-follow, pause/resume on switch, WebUI, diagnostics. Beta.

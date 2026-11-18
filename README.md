@@ -3,7 +3,7 @@
 **Your music. Your DAC. No unnecessary resampling.**
 
 ![status: beta](https://img.shields.io/badge/status-beta-orange)
-![version: 0.6.14](https://img.shields.io/badge/version-0.6.14-blue)
+![version: 0.7.0](https://img.shields.io/badge/version-0.7.0-blue)
 ![license: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
 **Download:** go to the [Releases page](../../releases), open the newest version at the top, and download the `.zip` under **Assets**. Then follow the [Quick start](#quick-start).
@@ -36,7 +36,7 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 ### What it does not do
 
 - Prove bit-perfect output from inside Android. The module makes Android play each track at its own sample rate, but whether the samples stay untouched also depends on the app (its volume, effects and DRM), and the phone cannot check that for you.
-- Work on the 3.5 mm jack (tested on an LG V30: the jack path is fixed at 48 kHz / 16-bit).
+- Follow the 3.5 mm jack by default. In some modes the jack stays fixed at 48 kHz / 16-bit; there is an experimental switch for the jack, see [3.5 mm jack (experimental)](#35-mm-jack-experimental).
 - Fix volume or effects inside the music app, or enabled system effects ("Volume listener" and similar).
 - Guarantee Hi-Res delivery; that depends on the service, subscription, track and DAC.
 - Give one app exclusive access to the DAC. Android mixes every app into one stream at one rate. The module only switches the rate when exactly one track is playing; if several tracks are active at once it leaves the rate alone, so something may be resampled until only one is left.
@@ -52,7 +52,7 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 <tr><td align="center"><a href="docs/screenshots/21.jpg"><img src="docs/screenshots/21.jpg" width="200" alt="Status with sound effects on"></a><br><sub>Status with sound effects on</sub></td><td align="center"><a href="docs/screenshots/22.jpg"><img src="docs/screenshots/22.jpg" width="200" alt="Wavelet idle, nothing applied"></a><br><sub>Wavelet idle, nothing applied</sub></td><td align="center"><a href="docs/screenshots/23.jpg"><img src="docs/screenshots/23.jpg" width="200" alt="Status, 192 kHz clean"></a><br><sub>Status, 192 kHz clean</sub></td></tr>
 </table>
 
-Tap an image for full size. More in the XDA thread: XDA_LINK_HERE
+Tap an image for full size.
 
 ## How it knows the track's sample rate
 
@@ -73,7 +73,7 @@ The audio-policy rewrite is done by the bundled, **unmodified** [USB_SampleRate_
 |---|---|---|---|
 | Moto Edge 30 Fusion | LineageOS 24 / Android 17 | APatch + Hybrid Mount | Works: rate-matched, auto-follow, pause/resume |
 | Samsung Galaxy Tab S9 | One UI 7 / Android 15 (R/W) | KernelSU Next + Hybrid Mount | Works (reported) |
-| LG V30 | LineageOS 22.2 / Android 15 | Magisk | USB DAC works in `safest` mode; jack not supported |
+| LG V30+ (H930DS) | LineageOS 22.2 / Android 15 | Magisk | USB DAC works in `safest` mode. Jack: in `bypass-offload` the mixer and the kernel audio stream follow a rate set by hand (experimental, see below) |
 
 Details and evidence: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md). Other devices, ROMs, DACs and apps are **untested**, and Spotify has not been tried.
 
@@ -143,11 +143,40 @@ If the WebUI says **Resampled** for a 192 kHz track (for example "Mixer 96 kHz, 
 
 zyhk's separate modules lift that limit:
 
-1. On **APatch**, install [Compatible Magisk-mirroring](https://github.com/Magisk-Modules-Alt-Repo/compatible-magisk-mirroring) first and reboot. Without it, the unlocker's installer stops with "no magisk-mirrors".
+1. On **APatch**, and on recent **Magisk** (the installer asks for it), install [Compatible Magisk-mirroring](https://github.com/Magisk-Modules-Alt-Repo/compatible-magisk-mirroring) first and reboot. Without it, the unlocker's installer stops with "no magisk-mirrors".
 2. Install [usb-samplerate-unlocker](https://github.com/Magisk-Modules-Alt-Repo/usb-samplerate-unlocker) and reboot. It patches vendor libraries, so read its page first.
 3. In the WebUI, turn **Auto-follow** off and on once so the follower restarts, then play a 192 kHz track.
 
 Confirmed on the Moto above (192 kHz works afterwards); other phones are untested. Details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md#rates-above-96-khz-usb-driver-lock).
+
+## 3.5 mm jack (experimental)
+
+By default only a USB DAC is followed. The **Auto** tab has a switch, **Follow 3.5 mm jack (experimental)** (`bprate jack on`), that makes the follower treat the headphone jack as an output too when no USB DAC is used.
+
+- **It needs a mode that changes the jack's rate.** `bypass-offload` worked on the tested phone. In `bypass-offload-safer`, `offload-safer`, `safe`, `safest` and `safest-auto` the jack stays at 48 kHz, so the follower leaves it alone and writes a note in the follow log.
+- **What was tested:** an LG V30+ (H930DS) on LineageOS 22.2 in `bypass-offload`. With a rate set by hand, the headset output thread and the kernel audio stream both ran at 96 kHz and then at 44.1 kHz (details in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md#35-mm-jack-experimental)). Following each track automatically on the jack then worked on the same phone: the follow log shows 44.1, 48 and 192 kHz switches, and at 192 kHz the headphone output thread and the kernel stream both ran at 192000 Hz. No other phone has been tested.
+- **Extended sample rates on the jack (352.8 / 384 kHz):** off by default, so the jack is never asked for more than 192 kHz. Turn on **Unlock extended sample rates (jack)** on the Auto tab (`bprate extended on`) to allow them; it also shows the 352.8 and 384 kHz buttons on the Rate tab. The jack lists no rates, so this is a trial: on the LG V30+ the jack ran at 384 kHz (headphone output thread and kernel stream both at 384000 Hz) with normal sound, but other phones may not accept it. If the sound goes silent or noisy, run `bprate extended off`. With it off, a track above 192 kHz is followed at half its rate, once. USB DACs are not affected: they use the rates the DAC lists.
+- The speaker may change with the jack in these modes, and a vendor effect on the path can still alter the signal. `bpstatus` shows what is enabled.
+- The "set media volume to MAX" advice is for USB DACs only. On the jack the status line just reports the volume, and you should keep headphones at a comfortable level. A volume below max is applied by the mixer, so the signal is not bit-exact there.
+
+## Per-output profiles (experimental)
+
+Off by default. With **Per-output profiles** on (Auto tab, or `bprate profiles on`; it needs Auto-follow on), each output gets its own mode and bit depth, and the module switches when the output changes:
+
+| Output | How it is detected |
+|---|---|
+| USB DAC | a USB audio card is present |
+| 3.5 mm jack | a wired headset or headphone is listed as an available output device |
+| Speaker / other | neither of the above |
+
+Nothing is preset. An output left on "keep current mode" is not touched. Set them in the WebUI or with `bprate profile usb|jack|other <mode> [bits]`, for example `bprate profile jack bypass-offload` and `bprate profile other safest`. `bprate profile` lists them, `bprate profile jack clear` removes one.
+
+- The output has to stay the same for two checks (about 3 seconds) before anything switches, and an unreadable dump counts as "no change", so an audio server restart does not look like an unplug.
+- A switch restarts the audio server, the same as a rate switch. If music is playing it is paused first and resumed afterwards (the same pause setting as rate switches).
+- If the output or profile changes more than 4 times in 2 minutes, or the backend fails twice, profiles turn themselves off and the follow log says why.
+- While profiles are on, the mode shown on the Audio tab is the one in effect right now. Change it per output, or the profile switches it back.
+- A jack profile also makes the follower follow the jack. The jack still needs a mode that changes its rate (see above).
+- Tested on an LG V30+ (LineageOS 22.2): jack profile `bypass-offload`, speaker/other profile `safest`. Plugging in headphones switched to the jack profile in about 5 seconds and unplugging switched back, and the speaker played normally afterwards. The USB DAC profile has not been tried on a phone yet.
 
 ## Known limitations
 
