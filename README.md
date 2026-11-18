@@ -27,7 +27,7 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 
 ## What it does
 
-- **Auto-follow:** a small daemon watches the playing track and switches the USB mixer to its sample rate (44.1 / 48 / 88.2 / 96 / 176.4 / 192 kHz).
+- **Auto-follow:** a small daemon watches the playing track and switches the mixer to its sample rate on the USB DAC: 44.1, 48, 88.2, 96, 176.4 and 192 kHz, and 352.8 / 384 kHz if the DAC lists them. It can also follow the 3.5 mm jack and switch mode per output ([both experimental](#35-mm-jack-experimental)). It is off after install: turn it on in the Auto tab.
 - **Pause while switching (optional):** pauses the player just before the switch and resumes right after, so the first moments are not played at the wrong rate.
 - **WebUI:** every setting as a button or switch, live status, logs and a one-tap sanitized report. Themes: Auto, Day, Night, Retro paper and Retro night, with an animation on/off switch.
 - **Truth tools:** `bpstatus` shows mixer rate, source rate, bit depth, digital gain, enabled effects and a `rate-matched` / `RESAMPLED` verdict.
@@ -59,7 +59,7 @@ Tap an image for full size.
 It does not read the player's metadata. The follower polls Android's audio server (`dumpsys media.audio_flinger`), finds the active track in the track table and takes the rate that track is opened at, so it follows what is really being played whatever the app claims.
 
 - It polls about every 0.4 s and needs a second poll to confirm a new rate before switching, so a brief glitch does not trigger a restart. The optional fast mode skips the confirmation and polls about every 0.12 s.
-- When the rate changes it asks the backend to set the USB mixer to that rate, or to a x2 / x4 / x8 multiple if the DAC does not support it. It then waits for the audio server to come back before carrying on.
+- When the rate changes it asks the backend to set the mixer to that rate on the USB DAC, or to a x2 / x4 / x8 multiple if the DAC does not list it. On the jack (experimental) it uses the track rate, halved once above 192 kHz unless extended rates are unlocked. It then waits for the audio server to come back before carrying on.
 - More than 6 switches in 2 minutes turns auto-follow off, and two failed backend calls do the same, so a misbehaving source cannot loop forever.
 - In testing with many Apple Music songs, the rate never changed in the middle of a song, so switches happen when a new track starts. A mid-stream rate change (some radio streams, for example) should be caught on the next poll, but it has not been tested.
 
