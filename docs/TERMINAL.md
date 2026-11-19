@@ -23,9 +23,10 @@ You do not need a terminal to use Auto Samplerate Changer: everything below is a
 | `bprate pause on\|off\|<seconds>` | Pause the player just before a rate switch and resume afterwards (default on, 1.5 s). |
 | `bprate fast on\|off` | Detect a new track's rate sooner (a bit more CPU use). |
 | `bprate jack on\|off` | Experimental: also follow the 3.5 mm headphone jack when no USB DAC is used. Needs a mode that changes the jack rate, such as `bypass-offload`. |
+| `bprate volsteps off\|<16-150>` | Finer media volume steps (Android has 15 on most phones). Off is the default and changes nothing. Saved now, applied at the next boot. |
 | `bprate extended on\|off` | Let the 3.5 mm jack be asked for 352.8 and 384 kHz (worked on an LG V30+; a trial on other phones). Off by default: the jack stays at 192 kHz or lower. USB DACs are not affected. |
 | `bprate profiles on\|off` | Experimental: switch mode and bit depth by output (USB DAC, 3.5 mm jack, speaker/other). Needs Auto-follow on. |
-| `bprate profile [usb\|jack\|other [<mode> [<bits>]\|clear]]` | Show, set or clear the profile of an output, e.g. `bprate profile jack bypass-offload 32`. An output without a profile keeps the current mode. |
+| `bprate profile [usb\|jack\|bt\|other [<mode> [<bits>]\|clear]]` | Show, set or clear the profile of an output, e.g. `bprate profile jack bypass-offload 32`. An output without a profile keeps the current mode. |
 | `bprate drc on\|off` | Compression: louder, but not bit-perfect. Off by default. |
 | `bprate deepbuffer keep\|trim` | Keep or remove `deep_buffer` on USB routes. |
 

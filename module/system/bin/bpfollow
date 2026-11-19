@@ -11,9 +11,9 @@ log() { echo "$(date '+%F %T') $*" >> "$LOG"; [ "$(wc -c < "$LOG")" -gt 100000 ]
 last=""; n=0; sw=0; win=$(date +%s); t0=0; prev=""
 fail=0; jackwarn=0
 kind=""; cand=""; cand_n=0; pnext=0; pwatch=0; praw="-"; psw=0; pwin=$(date +%s); pfail=0; pbad=""
-log "bpfollow v0.7.0 started"
+log "bpfollow v0.7.1 started"
 
-# Per-output profiles: when the output (USB DAC / jack / other) is stable for two checks and its profile differs from the mode in effect, apply it.
+# Per-output profiles: when the output (USB DAC / jack / Bluetooth / other) is stable for two checks and its profile differs from the mode in effect, apply it.
 profile_apply() {
   pr_k=$1; pr_p=$2; pr_m="--${pr_p%%:*}"; pr_b=${pr_p##*:}
   pr_now=$(date +%s); [ $((pr_now - pwin)) -gt 120 ] && { pwin=$pr_now; psw=0; }
@@ -45,7 +45,7 @@ profile_tick() {
   # whole seconds only: the millisecond clock (now_ms) jumps by a few seconds after an audio server restart on some phones
   pr_tn=$(date +%s); [ "$pr_tn" -ge "$pnext" ] || [ $((pnext - pr_tn)) -gt 5 ] || return 0
   pnext=$((pr_tn + 2))
-  [ "$pwatch" = 1 ] || { pwatch=1; log "profiles: on, checking the output every 2 s (usb=$(prof_get usb) jack=$(prof_get jack) other=$(prof_get other))"; }
+  [ "$pwatch" = 1 ] || { pwatch=1; log "profiles: on, checking the output every 2 s (usb=$(prof_get usb) jack=$(prof_get jack) bt=$(prof_get bt) other=$(prof_get other))"; }
   pr_k=$(out_kind)
   if [ "$pr_k" != "$praw" ]; then praw=$pr_k; log "profiles: output reads as '${pr_k:-unreadable}'"; fi
   [ -n "$pr_k" ] || return 0
@@ -60,7 +60,7 @@ profile_tick() {
 while [ -f "$STATE/auto" ]; do
   BP_KIND=""
   if profiles_on; then profile_tick; BP_KIND=$kind; else kind=""; cand=""; cand_n=0; pwatch=0; praw="-"; fi
-  if [ "$kind" = other ]; then
+  if [ "$kind" = other ] || [ "$kind" = bt ]; then
     # speaker/other output: its profile is applied above, there is no track rate to follow
     line=$(status_line); [ "$line" != "$prev" ] && { prev=$line; echo "$line" > "$STATE/status"; }
     last=""; n=0; nap 1; continue

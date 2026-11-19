@@ -3,4 +3,5 @@
 . /data/adb/modules/usb_dac_bitperfect/common.sh
 show() { load_probe; status_line; }
 fx() { e=$(active_effects); [ -n "$e" ] && echo "ENABLED EFFECTS (alter audio): $e"; }
-if [ "$1" = "-w" ]; then while true; do printf '\r\033[K%s' "$(show)"; sleep 1; done; else show; fx; fi
+vl() { v=$(media_vol); [ -n "$v" ] && echo "Media volume: ${v% *} / ${v#* }"; }
+if [ "$1" = "-w" ]; then while true; do printf '\r\033[K%s' "$(show)"; sleep 1; done; else show; fx; vl; fi

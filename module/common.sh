@@ -90,27 +90,37 @@ unlocker_present() {
 }
 usb_card() { for c in "${BP_ASOUND:-/proc/asound}"/card*; do [ -f "$c/usbid" ] && { echo "$c"; return; }; done; }
 
+# ---- finer media volume steps (bprate volsteps): off by default, applied at boot by post-fs-data.sh ----
+# Android has 15 media volume steps. ro.config.media_vol_steps can raise that; the setting is kept in the state dir so it survives module updates.
+VOLSTEPS_MIN=16; VOLSTEPS_MAX=150
+volsteps_valid() { case "$1" in ""|*[!0-9]*) return 1 ;; esac; [ "$1" -ge "$VOLSTEPS_MIN" ] && [ "$1" -le "$VOLSTEPS_MAX" ]; }
+volsteps_get() { _v=$(cat "$BP_STATE/volsteps" 2>/dev/null); volsteps_valid "$_v" && echo "$_v"; }
+# "<volume> <max>" out of "cmd media_session volume --get" text ("volume is 7 in range [0..15]"); prints nothing if the text is not in that form
+vol_parse() { sed -n 's/.*volume is \([0-9][0-9]*\) in range \[[0-9]*\.\.\([0-9][0-9]*\)\].*/\1 \2/p' | head -n 1; }
+media_vol() { cmd media_session volume --stream 3 --get 2>/dev/null | vol_parse; }
+
 # ---- per-output profiles (bprate profiles on): each output gets its own mode and bit depth ----
 profiles_on() { [ -f "$BP_STATE/profiles" ]; }
 valid_mode() {
   case "$1" in offload|offload-hifi-playback|offload-direct|offload-safer|bypass-offload|bypass-offload-safer|legacy|safe|safest|safest-auto|usb-only) return 0 ;; *) return 1 ;; esac
 }
 valid_bits() { case "$1" in 16|24|32|float) return 0 ;; *) return 1 ;; esac; }
-valid_out() { case "$1" in usb|jack|other) return 0 ;; *) return 1 ;; esac; }
+valid_out() { case "$1" in usb|jack|bt|other) return 0 ;; *) return 1 ;; esac; }
 dump_policy() { if [ -n "$POLICY_DUMP_FILE" ]; then cat "$POLICY_DUMP_FILE"; else dumpsys media.audio_policy 2>/dev/null; fi; }
-# Which output is in use: usb (a USB audio card is present), jack (a wired headset/headphone is listed as an available output device)
-# or other (speaker, Bluetooth...). Prints nothing if the policy dump could not be read, so a restarting audio server never counts as "unplugged".
+# Which output is in use: usb (a USB audio card is present), bt (a Bluetooth media/LE/hearing-aid device is listed as an available output device),
+# jack (a wired headset/headphone is listed) or other (the speaker). Bluetooth wins over the jack. It has its own profile ("bt"), but nothing is followed on it. Prints nothing if the policy dump could not be read, so a restarting audio server never counts as "unplugged".
 out_kind() {
   [ -n "$(usb_card)" ] && { echo usb; return; }
   dump_policy | awkc '
     /Available output devices/ { on = 1; seen = 1; next }
     /Available input devices/ { on = 0 }
+    on && /\{AUDIO_DEVICE_OUT_(BLUETOOTH_A2DP|BLE_|HEARING_AID)/ { b = 1 }
     on && /\{AUDIO_DEVICE_OUT_WIRED_HEAD(SET|PHONE)/ { j = 1 }
-    END { if (seen) print (j ? "jack" : "other") }'
+    END { if (seen) print (b ? "bt" : (j ? "jack" : "other")) }'
 }
 # Saved profile of an output as "mode:bits", or nothing
 prof_get() { valid_out "$1" && cat "$BP_STATE/prof_$1" 2>/dev/null; }
-# prof_set <usb|jack|other> <mode> [bits]; bits default to the current bit depth
+# prof_set <usb|jack|bt|other> <mode> [bits]; bits default to the current bit depth
 prof_set() {
   valid_out "$1" || return 1; valid_mode "$2" || return 1
   _pb=${3:-$(sr_bits)}; valid_bits "$_pb" || return 1
@@ -245,6 +255,7 @@ kbps() { echo $(( $1 * $2 * 2 / 1000 )); }
 
 # Human status line from the current probe (call load_probe first)
 status_line() {
+  [ "$BP_KIND" = bt ] && { _w=""; [ "$(sr_flags)" = --safest ] && _w=" | safest does not play on Bluetooth: set a Bluetooth profile"; echo "Bluetooth output | mode $(sr_flags) | nothing to follow$_w"; return; }
   [ "$BP_KIND" = other ] && { echo "Speaker/other output | mode $(sr_flags) | nothing to follow"; return; }
   [ "$thr" = "" ] && { if jack_on; then echo "No USB or jack output thread (nothing routed)"; else echo "No USB output thread (DAC not routed/connected)"; fi; return; }
   mb=$(bits_num "$mfmt")

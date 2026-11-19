@@ -51,7 +51,7 @@ Pristine source selection (added in v0.8):
 |---|---|---|
 | `common.sh` | sh + awk | all parsing/patching logic; sourced by everything else |
 | `customize.sh` | sh | installer |
-| `post-fs-data.sh` | sh | boot guard counter; optional `resetprop` for `bpoffload` |
+| `post-fs-data.sh` | sh | boot guard counter; optional `resetprop` for `bpoffload` and for `ro.config.media_vol_steps` (`bprate volsteps`, value kept in `$STATE/volsteps`) |
 | `service.sh` | sh | clears boot counter after audio is up, writes `boot.log`, starts `bpfollow` |
 | `bpfollow` | sh | daemon: probe, debounce (2 readings), switch, wait for audioserver, log timings |
 | `bprate`, `bpstatus`, `bpcheck`, `bpverify`, `bpdiag`, `bpdump`, `bpoffload` | sh | user tools |

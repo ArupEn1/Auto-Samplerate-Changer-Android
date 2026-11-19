@@ -6,7 +6,7 @@ mkdir -p "$STATE"
 ILOG=$STATE/install.tmp   # root-only dir: /data/local/tmp is writable by the adb shell user (symlink risk)
 : > "$ILOG"
 _up() { ui_print "$1"; echo "$1" >> "$ILOG"; }
-_up "- Auto Samplerate Changer for Android v0.7.0 (with optional bit-perfect, beta)"
+_up "- Auto Samplerate Changer for Android v0.7.1 (with optional bit-perfect, beta)"
 _up "  policy rewrite by the bundled USB_SampleRate_Changer (zyhk, AGPL-3.0, unmodified)"
 [ "$API" -ge 36 ] || _up "! Tested on Android 16+ (API 36+); this device is API $API"
 mkdir -p "$STATE"

@@ -87,7 +87,17 @@ POLICY_DUMP_FILE=$T/headphone.txt
 check "out_kind: headphones without mic -> jack" "$(out_kind)" jack
 POLICY_DUMP_FILE=$T/empty.txt; : > "$T/empty.txt"
 check "out_kind: unreadable dump -> nothing (not 'unplugged')" "$(out_kind)" ""
-POLICY_DUMP_FILE=$FX/policy_jack_plugged.txt
+POLICY_DUMP_FILE=$FX/policy_bt.txt
+check "out_kind: Bluetooth headset -> bt (not 'other', so profiles leave it alone)" "$(out_kind)" bt
+POLICY_DUMP_FILE=$FX/policy_bt_jack.txt
+check "out_kind: Bluetooth beats the jack" "$(out_kind)" bt
+sed 's/BLUETOOTH_A2DP/BLUETOOTH_SCO/' $FX/policy_bt.txt > $T/sco_only.txt
+POLICY_DUMP_FILE=$T/sco_only.txt
+check "out_kind: SCO alone (phone-call headset) is not Bluetooth media" "$(out_kind)" other
+sed 's/BLUETOOTH_A2DP/BLE_HEADSET/' $FX/policy_bt.txt > $T/ble.txt
+POLICY_DUMP_FILE=$T/ble.txt
+check "out_kind: LE Audio headset -> bt" "$(out_kind)" bt
+POLICY_DUMP_FILE=$FX/policy_bt_jack.txt
 mkdir -p "$BP_ASOUND/card1"; echo "1234:5678" > "$BP_ASOUND/card1/usbid"
 check "out_kind: USB card beats the jack" "$(out_kind)" usb
 rm -rf "$BP_ASOUND/card1"
@@ -120,6 +130,14 @@ jack_on && bad "jack_on false: profiles on but no jack profile" || ok "jack_on f
 BP_KIND=usb; check "BP_KIND=usb narrows the output regex" "$(out_re)" "AUDIO_DEVICE_OUT_USB"
 BP_KIND=jack; check "BP_KIND=jack narrows the output regex" "$(out_re)" "AUDIO_DEVICE_OUT_WIRED_HEAD"
 BP_KIND=other; check "other output: status line says nothing to follow" "$(status_line)" "Speaker/other output | mode --bypass-offload | nothing to follow"
+BP_KIND=bt; check "Bluetooth output: status line says nothing to follow" "$(status_line)" "Bluetooth output | mode --bypass-offload | nothing to follow"
+check "Bluetooth with no profile: nothing pending" "$(prof_pending bt)" ""
+BP_KIND=bt; echo "--safest" > "$BP_STATE/sr_flags"
+check "Bluetooth in safest: status line warns" "$(status_line)" "Bluetooth output | mode --safest | nothing to follow | safest does not play on Bluetooth: set a Bluetooth profile"
+echo "--bypass-offload" > "$BP_STATE/sr_flags"
+prof_set bt bypass-offload-safer 32 && ok "prof_set accepts the bt output" || bad "prof_set bt"
+check "bt profile pending when another mode is in effect" "$(prof_pending bt)" "bypass-offload-safer:32"
+rm -f "$BP_STATE/prof_bt"
 unset BP_KIND
 TRACK_DUMP_FILE=$FX/flinger_jack_44k.txt; BP_KIND=usb; load_probe; check "BP_KIND=usb ignores the jack thread" "$thr" ""
 BP_KIND=jack; load_probe; check "BP_KIND=jack finds the jack thread" "$thr" AudioOut_15
@@ -143,6 +161,18 @@ for um in usb-samplerate-unlocker audio-samplerate-changer hifi-maximizer-mod; d
 done
 mkdir "$BP_MODROOT/some-other-module"; unlocker_present && bad "an unrelated module is not an unlocker" || ok "an unrelated module is not an unlocker"
 unset BP_MODROOT
+# volume steps (off by default; valid range 16..150)
+VS=$T/vs; mkdir -p "$VS"; _bs=$BP_STATE; BP_STATE=$VS
+check "volsteps: nothing saved -> off" "$(volsteps_get)" ""
+for v in 16 30 100 150; do volsteps_valid $v && ok "volsteps_valid $v" || bad "volsteps_valid $v"; done
+for v in 15 151 0 abc "" 3.5 -20 1e2; do volsteps_valid "$v" && bad "volsteps must reject '$v'" || ok "volsteps rejects '$v'"; done
+echo 75 > "$VS/volsteps"; check "volsteps: saved value is read" "$(volsteps_get)" 75
+echo 999 > "$VS/volsteps"; check "volsteps: a bad saved value counts as off" "$(volsteps_get)" ""
+rm -f "$VS/volsteps"
+check "vol_parse: media_session text" "$(echo 'volume is 7 in range [0..15]' | vol_parse)" "7 15"
+check "vol_parse: 150 steps" "$(echo 'volume is 112 in range [0..150]' | vol_parse)" "112 150"
+check "vol_parse: unknown text -> nothing" "$(echo 'Error: something else' | vol_parse)" ""
+BP_STATE=$_bs
 unset BP_STATE; TRACK_DUMP_FILE=$FX/flinger_idle.txt
 
 check "pick 44100" "$(pick_rate 44100 $FX/stream0_dac.txt)" 44100
@@ -244,7 +274,7 @@ unset BP_MODDIR BP_STATE
 WU=$HERE/../module/webroot/index.html
 [ -f "$WU" ] && ok "webui page present" || bad "webui page missing"
 grep -q 'ksu.exec' "$WU" && ok "webui uses the ksu.exec bridge" || bad "webui bridge missing"
-for c in state auto boot drc pause fast jack extended profiles profile mode bits reset; do
+for c in state auto boot drc pause fast jack extended volsteps profiles profile mode bits reset; do
   grep -q "bprate" "$WU" && grep -qE "^ *\"?$c\"?\)|^ *([a-z0-9|-]+\|)?$c(\|[a-z0-9-]+)*\)" "$HERE/../module/system/bin/bprate" && ok "bprate handles '$c' (used by webui)" || bad "bprate lacks '$c'"
 done
 

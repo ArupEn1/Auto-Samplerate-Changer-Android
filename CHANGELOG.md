@@ -2,6 +2,19 @@
 
 Versions are module versions (`module/module.prop`). Nothing here is a validated release.
 
+## 0.7.1
+
+### Fixed
+- **Bluetooth headphones and per-output profiles**: a Bluetooth headset used to count as "Speaker / other", so with the speaker profile on `safest` (which does not play on Bluetooth) connecting headphones left the sound on the speaker or jack. Bluetooth (A2DP, LE Audio, hearing aid) is now detected on its own and gets its own profile (`bprate profile bt <mode>`, Bluetooth row on the Auto tab; left on "keep current mode" it is not touched). It wins over the jack, and the follower does nothing on it. The Status tab warns when `safest` is in effect on Bluetooth. Seen on a Moto Edge 30 Fusion, an LG V30+ and a Samsung (all list the AirPods as `BLUETOOTH_A2DP`); `safest` stayed silent on the Moto and the LG, `bypass-offload` and `bypass-offload-safer` played.
+
+### New
+- Off by default: **finer media volume steps** (`bprate volsteps off|16..150`, card on the Audio tab). Sets `ro.config.media_vol_steps` at boot (up to 150 steps instead of Android's 15); handy for Bluetooth headphones or a USB DAC without a volume control of its own, where the phone's volume is the only control. Needs a reboot, and `off` changes nothing. The setting is kept in the state dir, so it survives module updates. `bpstatus` and the Status tab show the media volume as `Media volume: N / M`. Worked with 75 and 150 steps on a Moto Edge 30 Fusion (LineageOS 24).
+
+### Changed
+- Auto tab: the per-output rows only show once "Switch mode by output" is on; the card explains what it does while it is off.
+- README: the Auto-follow description now covers the jack, the profiles and the extended rates; new Auto tab screenshots.
+- Docs: Poweramp followed 352.8 and 384 kHz on the jack with the extended rates switch on.
+
 ## 0.7.0
 
 The module now reaches beyond USB: it can follow the 3.5 mm jack and switch modes per output. Both are experimental and off by default. They were tested on an LG V30+ (LineageOS 22.2, Magisk).

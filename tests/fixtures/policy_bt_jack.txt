@@ -1,0 +1,53 @@
+ Config source: /vendor/etc/audio_policy_configuration.xml
+
+ Available output devices (4):
+  1. Port ID: 2; "Earpiece"; {AUDIO_DEVICE_OUT_EARPIECE, @:}
+     Encapsulation modes: 0, metadata types: 0
+   - Profiles (1):
+      1. ""; AUDIO_FORMAT_PCM_32_BIT (0x3)
+         sampling rates: 44100
+         channel masks: 0x0001
+         AUDIO_ENCAPSULATION_TYPE_NONE
+  2. Port ID: 3; "Speaker"; {AUDIO_DEVICE_OUT_SPEAKER, @:}
+     Encapsulation modes: 0, metadata types: 0
+   - Profiles (1):
+      1. ""; AUDIO_FORMAT_PCM_32_BIT (0x3)
+         sampling rates: 44100
+         channel masks: 0x0003
+         AUDIO_ENCAPSULATION_TYPE_NONE
+  3. Port ID: 20; "Wired Headset"; {AUDIO_DEVICE_OUT_WIRED_HEADSET, @:}
+     Encapsulation modes: 0, metadata types: 0
+     "h2w"
+   - Profiles (1):
+      1. ""; AUDIO_FORMAT_PCM_32_BIT (0x3)
+         sampling rates: 44100
+         channel masks: 0x0003
+         AUDIO_ENCAPSULATION_TYPE_NONE
+  4. Port ID: 8; "Telephony Tx"; {AUDIO_DEVICE_OUT_TELEPHONY_TX, @:}
+     Encapsulation modes: 0, metadata types: 0
+   - Profiles (1):
+      1. ""; AUDIO_FORMAT_PCM_16_BIT (0x1)
+         sampling rates: 8000, 16000
+         channel masks: 0x0001, 0x0003
+         AUDIO_ENCAPSULATION_TYPE_NONE
+
+  9. Port ID: 31; "BT A2DP Out"; {AUDIO_DEVICE_OUT_BLUETOOTH_A2DP, @:00:00:00:00:00:00}
+     Encapsulation modes: 0, metadata types: 0
+   - Profiles (1):
+      1. ""; AUDIO_FORMAT_PCM_16_BIT (0x1)
+         sampling rates: 44100, 48000
+         channel masks: 0x0003
+         AUDIO_ENCAPSULATION_TYPE_NONE
+  10. Port ID: 32; "BT SCO"; {AUDIO_DEVICE_OUT_BLUETOOTH_SCO, @:00:00:00:00:00:00}
+     Encapsulation modes: 0, metadata types: 0
+
+ Available input devices (5):
+  1. Port ID: 11; "Built-In Mic"; {AUDIO_DEVICE_IN_BUILTIN_MIC, @:bottom}
+     Encapsulation modes: 0, metadata types: 0
+   - Profiles (1):
+      1. ""; AUDIO_FORMAT_PCM_16_BIT (0x1)
+         sampling rates: 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000
+         channel masks: 0x000c, 0x0010, 0x0030
+         AUDIO_ENCAPSULATION_TYPE_NONE
+  2. Port ID: 21; "Wired Headset Mic"; {AUDIO_DEVICE_IN_WIRED_HEADSET, @:}
+     Encapsulation modes: 0, metadata types: 0

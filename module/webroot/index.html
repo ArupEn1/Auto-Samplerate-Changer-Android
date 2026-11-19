@@ -194,11 +194,15 @@ h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
     <div class="row"><div class="t"><b>Apply at boot</b><span>re-applies the saved mode and rate after every reboot</span></div><label class="sw"><input type="checkbox" data-key="boot_apply"><i></i></label></div>
   </div>
   <div class="card"><h2>Per-output profiles (experimental)</h2>
-    <div class="row"><div class="t"><b>Switch mode by output</b><span>when the output changes (USB DAC, 3.5 mm jack, speaker or other), the module switches to that output's mode. Needs Auto-follow on. Outputs left on "keep current mode" are not touched</span></div><label class="sw"><input type="checkbox" data-key="profiles"><i></i></label></div>
+    <div class="row"><div class="t"><b>Switch mode by output</b><span>switches the mode when you plug in or connect something. Needs Auto-follow on</span></div><label class="sw"><input type="checkbox" data-key="profiles"><i></i></label></div>
+    <p class="hint" style="margin:10px 2px 14px">Gives each output its own mode and bit depth, for example the jack on bypass-offload, Bluetooth on bypass-offload-safer and the speaker on safest. Outputs left on "keep current mode" are not touched. Turn this on to choose the modes.</p>
+    <div id="profRows" hidden>
     <div class="row"><div class="t"><b>USB DAC</b><span>e.g. bypass-offload-safer</span></div><div class="pair"><select data-prof="usb" aria-label="USB DAC mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="usb" aria-label="USB DAC bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
     <div class="row"><div class="t"><b>3.5 mm jack</b><span>e.g. bypass-offload (the jack follows the track rate)</span></div><div class="pair"><select data-prof="jack" aria-label="3.5 mm jack mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="jack" aria-label="3.5 mm jack bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
+    <div class="row"><div class="t"><b>Bluetooth</b><span>e.g. bypass-offload-safer. safest does not play on Bluetooth</span></div><div class="pair"><select data-prof="bt" aria-label="Bluetooth mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="bt" aria-label="Bluetooth bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
     <div class="row"><div class="t"><b>Speaker / other</b><span>e.g. safest (stays at 48 kHz)</span></div><div class="pair"><select data-prof="other" aria-label="Speaker / other mode"><option value="">keep current mode</option><option value="bypass-offload-safer">bypass-offload-safer</option><option value="bypass-offload">bypass-offload</option><option value="usb-only">usb-only</option><option value="offload-hifi-playback">offload-hifi-playback</option><option value="offload">offload</option><option value="offload-safer">offload-safer</option><option value="offload-direct">offload-direct</option><option value="legacy">legacy</option><option value="safe">safe</option><option value="safest">safest</option><option value="safest-auto">safest-auto</option></select><select data-profbits="other" aria-label="Speaker / other bit depth"><option value="32">32</option><option value="24">24</option><option value="16">16</option><option value="float">float</option></select></div></div>
     <p class="hint">While profiles are on, the Mode on the Audio tab shows the mode in effect right now. Change it per output here, or the profile will switch it back.</p>
+    </div>
   </div>
   <div class="card"><h2>Rate-switch behaviour</h2>
     <div class="row"><div class="t"><b>Pause during switch</b><span>pauses the player, switches, then resumes</span></div><label class="sw"><input type="checkbox" data-key="pause"><i></i></label></div>
@@ -229,6 +233,11 @@ h1{animation:sweep .8s cubic-bezier(.25,.7,.25,1) both}
       </select></div>
     <div class="row"><div class="t"><b>Bit depth</b><span>32-bit is the default</span></div>
       <select id="bits"><option>16</option><option>24</option><option>32</option><option value="float">float</option></select></div>
+  </div>
+  <div class="card"><h2>Volume steps (experimental)</h2>
+    <div class="row"><div class="t"><b>Finer volume steps</b><span>Android has 15 media volume steps on most phones. Off changes nothing (default). Takes effect after a reboot. Some ROMs ignore it</span></div>
+      <select id="volsteps"><option value="off">Off (default)</option><option value="30">30 steps</option><option value="50">50 steps</option><option value="75">75 steps</option><option value="100">100 steps</option><option value="150">150 steps</option></select></div>
+    <p class="hint" id="volNote" hidden></p>
   </div>
   <div class="card"><h2>Sound</h2>
     <div class="row"><div class="t"><b>DRC (compression)</b><span>louder and punchier, but not bit-perfect. Off is the default</span></div><label class="sw"><input type="checkbox" data-key="drc"><i></i></label></div>
@@ -334,10 +343,10 @@ const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
 /* ---- command bridge: KernelSU/APatch WebUI API, or a simulated one for previews ---- */
 let demo = !(window.ksu && typeof window.ksu.exec === "function");
-const mock = { rate: 96000, bits: "32", mode: "bypass-offload-safer", boot_apply: 1, auto: 0, drc: 0, pause: 1, fast: 0, jack: 0, extended: 0, unlocker: 0, lockseen: 1, profiles: 0, prof_usb: "", prof_jack: "", prof_other: "", pause_delay: "1.5" };
+const mock = { rate: 96000, bits: "32", mode: "bypass-offload-safer", boot_apply: 1, auto: 0, drc: 0, pause: 1, fast: 0, volsteps: "", volsteps_live: "", jack: 0, extended: 0, unlocker: 0, lockseen: 1, profiles: 0, prof_usb: "", prof_jack: "", prof_bt: "", prof_other: "", pause_delay: "1.5" };
 function mockExec(cmd) {
-  if (/module\.prop/.test(cmd)) return "version=v0.7.0 (preview)";
-  const pm = cmd.match(/bprate profile (usb|jack|other) (\S+)(?: (\S+))?/);
+  if (/module\.prop/.test(cmd)) return "version=v0.7.1 (preview)";
+  const pm = cmd.match(/bprate profile (usb|jack|bt|other) (\S+)(?: (\S+))?/);
   if (pm) { mock["prof_" + pm[1]] = pm[2] === "clear" ? "" : pm[2] + ":" + (pm[3] || mock.bits); return "Profile '" + pm[1] + "' = " + mock["prof_" + pm[1]]; }
   const m = cmd.match(/bprate (\S+)(?: (\S+))?/);
   if (/bprate state/.test(cmd)) return Object.entries(mock).map(([k, v]) => k + "=" + v).join("\n");
@@ -351,6 +360,7 @@ function mockExec(cmd) {
       if (a === "pause" && /^[\d.]+$/.test(b)) { mock.pause_delay = b; mock.pause = 1; } else mock[key] = b === "on" ? 1 : 0;
       return a + " " + b;
     }
+    if (a === "volsteps") { mock.volsteps = b === "off" ? "" : b; return b === "off" ? "Volume steps OFF (default)." : "Volume steps set to " + b + ". Reboot to apply."; }
     if (a === "mode") { mock.mode = b; return "Mode set to --" + b; }
     if (a === "bits") { mock.bits = b; return "Bit depth set to " + b; }
     if (a === "reset") { mock.auto = 0; mock.boot_apply = 0; return "Policy overlay removed."; }
@@ -387,7 +397,13 @@ function paint() {
   $$("[data-key]").forEach(el => { el.checked = S[el.dataset.key] === "1"; });
   $("#mode").value = S.mode || "bypass-offload-safer";
   $("#bits").value = S.bits || "32";
-  ["usb", "jack", "other"].forEach(o => {
+  const vs = S.volsteps || "", live = S.volsteps_live || "";
+  if (![...$("#volsteps").options].some(o => o.value === vs)) { const o = document.createElement("option"); o.value = vs; o.textContent = vs + " steps"; $("#volsteps").appendChild(o); }
+  $("#volsteps").value = vs || "off";
+  const vn = $("#volNote"), pending = (vs || "") !== (live === "15" ? "" : live);
+  vn.hidden = !pending; vn.textContent = pending ? "Saved: " + (vs ? vs + " steps" : "off") + ". In use now: " + (live || "Android default") + ". Reboot to apply." : "";
+  $("#profRows").hidden = S.profiles !== "1";
+  ["usb", "jack", "bt", "other"].forEach(o => {
     const p = S["prof_" + o] || "", i = p.indexOf(":");
     $("[data-prof=" + o + "]").value = i > 0 ? p.slice(0, i) : "";
     $("[data-profbits=" + o + "]").value = i > 0 ? p.slice(i + 1) : (S.bits || "32");
@@ -400,7 +416,7 @@ function paint() {
     "\nAuto-follow: " + (S.auto === "1" ? "on" : "off") + " | Boot: " + (S.boot_apply === "1" ? "on" : "off") +
     "\nPause: " + (S.pause === "1" ? "on, " + S.pause_delay + " s" : "off") + " | Fast: " + (S.fast === "1" ? "on" : "off") +
     "\nDRC: " + (S.drc === "1" ? "on" : "off") +
-    "\nProfiles: " + (S.profiles === "1" ? "on" : "off") + (S.profiles === "1" ? " (usb " + (S.prof_usb || "-") + ", jack " + (S.prof_jack || "-") + ", other " + (S.prof_other || "-") + ")" : "");
+    "\nProfiles: " + (S.profiles === "1" ? "on" : "off") + (S.profiles === "1" ? " (usb " + (S.prof_usb || "-") + ", jack " + (S.prof_jack || "-") + ", bluetooth " + (S.prof_bt || "-") + ", other " + (S.prof_other || "-") + ")" : "");
 }
 async function loadState() {
   const txt = await bprate("state", true);
@@ -460,6 +476,7 @@ async function setProfile(o) {
 }
 $$("[data-prof]").forEach(el => el.addEventListener("change", () => setProfile(el.dataset.prof)));
 $$("[data-profbits]").forEach(el => el.addEventListener("change", () => { if ($("[data-prof=" + el.dataset.profbits + "]").value) setProfile(el.dataset.profbits); }));
+$("#volsteps").addEventListener("change", async e => { const out = await bprate("volsteps " + e.target.value); toast(out.split("\n")[0]); loadState(); });
 $("#mode").addEventListener("change", async e => { toast("Changing mode…"); const out = await bprate("mode " + e.target.value); toast(out.split("\n")[0]); loadState(); });
 $("#bits").addEventListener("change", async e => { toast("Changing bit depth…"); const out = await bprate("bits " + e.target.value); toast(out.split("\n")[0]); loadState(); });
 

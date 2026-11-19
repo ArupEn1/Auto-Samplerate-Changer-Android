@@ -3,7 +3,7 @@
 **Your music. Your DAC. No unnecessary resampling.**
 
 ![status: beta](https://img.shields.io/badge/status-beta-orange)
-![version: 0.7.0](https://img.shields.io/badge/version-0.7.0-blue)
+![version: 0.7.1](https://img.shields.io/badge/version-0.7.1-blue)
 ![license: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
 **Download:** go to the [Releases page](../../releases), open the newest version at the top, and download the `.zip` under **Assets**. Then follow the [Quick start](#quick-start).
@@ -46,7 +46,7 @@ Rooted phones or tablets with an **external USB DAC** where the music app's outp
 <table>
 <tr><td align="center"><a href="docs/screenshots/01.jpg"><img src="docs/screenshots/01.jpg" width="200" alt="First run: Auto-follow nudge"></a><br><sub>First run: Auto-follow nudge</sub></td><td align="center"><a href="docs/screenshots/02.jpg"><img src="docs/screenshots/02.jpg" width="200" alt="No USB output"></a><br><sub>No USB output</sub></td><td align="center"><a href="docs/screenshots/03.jpg"><img src="docs/screenshots/03.jpg" width="200" alt="Apple Music, 96 kHz track"></a><br><sub>Apple Music, 96 kHz track</sub></td><td align="center"><a href="docs/screenshots/04.jpg"><img src="docs/screenshots/04.jpg" width="200" alt="Status, 96 kHz rate-matched"></a><br><sub>Status, 96 kHz rate-matched</sub></td></tr>
 <tr><td align="center"><a href="docs/screenshots/05.jpg"><img src="docs/screenshots/05.jpg" width="200" alt="Apple Music, 44.1 kHz track"></a><br><sub>Apple Music, 44.1 kHz track</sub></td><td align="center"><a href="docs/screenshots/06.jpg"><img src="docs/screenshots/06.jpg" width="200" alt="Status, 44.1 kHz rate-matched"></a><br><sub>Status, 44.1 kHz rate-matched</sub></td><td align="center"><a href="docs/screenshots/07.jpg"><img src="docs/screenshots/07.jpg" width="200" alt="Apple Music, 192 kHz track"></a><br><sub>Apple Music, 192 kHz track</sub></td><td align="center"><a href="docs/screenshots/08.jpg"><img src="docs/screenshots/08.jpg" width="200" alt="Status, 192 kHz rate-matched"></a><br><sub>Status, 192 kHz rate-matched</sub></td></tr>
-<tr><td align="center"><a href="docs/screenshots/09.jpg"><img src="docs/screenshots/09.jpg" width="200" alt="Rate tab"></a><br><sub>Rate tab</sub></td><td align="center"><a href="docs/screenshots/10.jpg"><img src="docs/screenshots/10.jpg" width="200" alt="Auto tab: automation and per-output profiles"></a><br><sub>Auto tab: profiles</sub></td><td align="center"><a href="docs/screenshots/10-2.jpg"><img src="docs/screenshots/10-2.jpg" width="200" alt="Auto tab: rate-switch behaviour, jack and extended rates"></a><br><sub>Auto tab: jack and extended rates</sub></td><td align="center"><a href="docs/screenshots/11.jpg"><img src="docs/screenshots/11.jpg" width="200" alt="Audio tab"></a><br><sub>Audio tab</sub></td></tr>
+<tr><td align="center"><a href="docs/screenshots/09.jpg"><img src="docs/screenshots/09.jpg" width="200" alt="Rate tab"></a><br><sub>Rate tab</sub></td><td align="center"><a href="docs/screenshots/10.jpg"><img src="docs/screenshots/10.jpg" width="200" alt="Auto tab, per-output profiles off"></a><br><sub>Auto tab: profiles off</sub></td><td align="center"><a href="docs/screenshots/10-2.jpg"><img src="docs/screenshots/10-2.jpg" width="200" alt="Auto tab, per-output profiles on"></a><br><sub>Auto tab: profiles on</sub></td><td align="center"><a href="docs/screenshots/11.jpg"><img src="docs/screenshots/11.jpg" width="200" alt="Audio tab"></a><br><sub>Audio tab</sub></td></tr>
 <tr><td align="center"><a href="docs/screenshots/12.jpg"><img src="docs/screenshots/12.jpg" width="200" alt="Audio: which mode should I pick"></a><br><sub>Audio: which mode should I pick</sub></td><td align="center"><a href="docs/screenshots/13.jpg"><img src="docs/screenshots/13.jpg" width="200" alt="Audio: mode list"></a><br><sub>Audio: mode list</sub></td><td align="center"><a href="docs/screenshots/14.jpg"><img src="docs/screenshots/14.jpg" width="200" alt="Audio: bit depth list"></a><br><sub>Audio: bit depth list</sub></td><td align="center"><a href="docs/screenshots/15.jpg"><img src="docs/screenshots/15.jpg" width="200" alt="Tools, Night theme"></a><br><sub>Tools, Night theme</sub></td></tr>
 <tr><td align="center"><a href="docs/screenshots/16.jpg"><img src="docs/screenshots/16.jpg" width="200" alt="Tools: diagnostics and report"></a><br><sub>Tools: diagnostics and report</sub></td><td align="center"><a href="docs/screenshots/17.jpg"><img src="docs/screenshots/17.jpg" width="200" alt="Day theme"></a><br><sub>Day theme</sub></td><td align="center"><a href="docs/screenshots/18.jpg"><img src="docs/screenshots/18.jpg" width="200" alt="Retro paper theme"></a><br><sub>Retro paper theme</sub></td><td align="center"><a href="docs/screenshots/19.jpg"><img src="docs/screenshots/19.jpg" width="200" alt="Retro night theme"></a><br><sub>Retro night theme</sub></td></tr>
 <tr><td align="center"><a href="docs/screenshots/20.jpg"><img src="docs/screenshots/20.jpg" width="200" alt="Wavelet equalizer on"></a><br><sub>Wavelet equalizer on</sub></td><td align="center"><a href="docs/screenshots/21.jpg"><img src="docs/screenshots/21.jpg" width="200" alt="Status with sound effects on"></a><br><sub>Status with sound effects on</sub></td><td align="center"><a href="docs/screenshots/22.jpg"><img src="docs/screenshots/22.jpg" width="200" alt="Wavelet idle, nothing applied"></a><br><sub>Wavelet idle, nothing applied</sub></td><td align="center"><a href="docs/screenshots/23.jpg"><img src="docs/screenshots/23.jpg" width="200" alt="Status, 192 kHz clean"></a><br><sub>Status, 192 kHz clean</sub></td></tr>
@@ -167,9 +167,10 @@ Off by default. With **Per-output profiles** on (Auto tab, or `bprate profiles o
 |---|---|
 | USB DAC | a USB audio card is present |
 | 3.5 mm jack | a wired headset or headphone is listed as an available output device |
-| Speaker / other | neither of the above |
+| Bluetooth headphones | an A2DP, LE Audio or hearing-aid device is listed as an available output device. Wins over the jack. **`safest` does not play on Bluetooth** (Moto Edge 30 Fusion, LG V30+), so give Bluetooth its own mode, e.g. `bypass-offload-safer` |
+| Speaker / other | none of the above |
 
-Nothing is preset. An output left on "keep current mode" is not touched. Set them in the WebUI or with `bprate profile usb|jack|other <mode> [bits]`, for example `bprate profile jack bypass-offload` and `bprate profile other safest`. `bprate profile` lists them, `bprate profile jack clear` removes one.
+Nothing is preset. An output left on "keep current mode" is not touched. Set them in the WebUI or with `bprate profile usb|jack|bt|other <mode> [bits]`, for example `bprate profile jack bypass-offload`, `bprate profile bt bypass-offload-safer` and `bprate profile other safest`. `bprate profile` lists them, `bprate profile jack clear` removes one.
 
 - The output has to stay the same for two checks (about 3 seconds) before anything switches, and an unreadable dump counts as "no change", so an audio server restart does not look like an unplug.
 - A switch restarts the audio server, the same as a rate switch. If music is playing it is paused first and resumed afterwards (the same pause setting as rate switches).
@@ -177,6 +178,15 @@ Nothing is preset. An output left on "keep current mode" is not touched. Set the
 - While profiles are on, the mode shown on the Audio tab is the one in effect right now. Change it per output, or the profile switches it back.
 - A jack profile also makes the follower follow the jack. The jack still needs a mode that changes its rate (see above).
 - Tested on an LG V30+ (LineageOS 22.2): jack profile `bypass-offload`, speaker/other profile `safest`. Plugging in headphones switched to the jack profile in about 5 seconds and unplugging switched back, and the speaker played normally afterwards. The USB DAC profile has not been tried on a phone yet.
+
+## Volume steps (experimental)
+
+Android has 15 media volume steps on most phones, which is coarse on headphones. **Finer volume steps** (Audio tab, or `bprate volsteps <16-150>`) raises the number, up to 150, by setting `ro.config.media_vol_steps` at boot. It is meant to make life easier: Bluetooth headphones, or a USB DAC without a volume control of its own, can only be turned down with the phone's volume, so finer steps help. **Off is the default and changes nothing.**
+
+- It takes effect after a reboot. `bprate volsteps off` and a reboot go back to Android's own number.
+- It is a standard Android property, but some ROMs ignore it. It worked on the Moto Edge 30 Fusion (LineageOS 24) with 75 and 150 steps. Other phones are untested; Samsung One UI has its own volume step setting in Good Lock.
+- `bpstatus` and the Status tab show the media volume as a number, for example `Media volume: 45 / 100`. The module cannot add a number to Android's own volume panel; that is part of the system UI.
+- It does not touch the sample rate, the mode or anything else the module does.
 
 ## Known limitations
 

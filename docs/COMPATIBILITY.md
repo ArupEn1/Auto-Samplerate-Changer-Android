@@ -53,11 +53,11 @@ The jack can follow a rate in modes that change the internal outputs. Tested by 
 - The 32-bit mixer reaches the hardware as 24-bit. Whether the DAC chip processes the signal further is not known.
 - On Qualcomm phones the speaker and the jack usually share one playback stream, so the stream alone does not prove which one is playing; the active output thread does.
 - Automatic following: the follow log showed switches to 44.1, 48 and 192 kHz as tracks changed. Headphones without a microphone are listed as `WIRED_HEADPHONE`, a headset with one as `WIRED_HEADSET`; both are detected.
-- Above 192 kHz: VLC played a 384 kHz file at 192 kHz. With Poweramp set to 352.8 kHz the follower picked 176.4 kHz (it halves rates above 192 kHz once). Not checked whether 176.4 kHz reached the hardware. Rates above 192 kHz are not a goal of the jack follower.
+- Above 192 kHz: with "Unlock extended sample rates (jack)" off, the follower halves rates above 192 kHz once (Poweramp at 352.8 kHz gave 176.4 kHz). With it on, 352.8 and 384 kHz were followed on the V30+ (Poweramp goes up to 384 kHz).
 - Not tested yet: other phones and other modes.
 
 ## Per-output profiles (experimental)
-Output detection (`out_kind`) reads `dumpsys media.audio_policy`: a wired headset or headphone in the "Available output devices" list means jack, a USB audio card in `/proc/asound` means USB DAC, otherwise other. Tests use the V30+'s plugged dump and the same dump without the headset entry. On the LG V30+ (jack = `bypass-offload`, other = `safest`) plugging in headphones switched to the jack profile and unplugging switched back, each in about 5 seconds including a 2.5 s audio server restart, and the speaker worked afterwards. The USB DAC profile is not tried on a phone yet.
+Output detection (`out_kind`) reads `dumpsys media.audio_policy`: a wired headset or headphone in the "Available output devices" list means jack, a USB audio card in `/proc/asound` means USB DAC, a Bluetooth media device (`BLUETOOTH_A2DP`, `BLE_*` or `HEARING_AID`) means Bluetooth (its own profile, and it wins over the jack), otherwise other. A phone-call-only `BLUETOOTH_SCO` entry alone does not count. On the Moto Edge 30 Fusion the AirPods showed up as `AUDIO_DEVICE_OUT_BLUETOOTH_A2DP` (plus `BLUETOOTH_SCO`). Tests use the V30+'s plugged dump and the same dump without the headset entry. On the LG V30+ (jack = `bypass-offload`, other = `safest`) plugging in headphones switched to the jack profile and unplugging switched back, each in about 5 seconds including a 2.5 s audio server restart, and the speaker worked afterwards. The USB DAC profile is not tried on a phone yet.
 
 ## Legend
 - **Confirmed rate-matched:** `bpstatus` showed `rate-matched`, `gain 0 dB`, no enabled effects while playing.
